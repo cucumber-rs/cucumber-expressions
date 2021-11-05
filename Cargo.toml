@@ -1,0 +1,19 @@
+[package]
+name = "cucumber-expressions"
+version = "0.1.0-dev"
+edition = "2021"
+rust-version = "1.56"
+license = "MIT OR Apache-2.0"
+authors = [
+    "Ilya Solovyiov <ilya.solovyiov@gmail.com>",
+    "Kai Ren <tyranron@gmail.com>",
+]
+documentation = "https://docs.rs/cucumber-expressions"
+homepage = "https://github.com/cucumber-rs/cucumber-expressions"
+repository = "https://github.com/cucumber-rs/cucumber-expressions"
+readme = "README.md"
+categories = ["compilers", "parser-implementations"]
+keywords = ["cucumber", "expression", "expressions", "cucumber-expressions"]
+include = ["/src/", "/LICENSE-*", "/README.md", "/CHANGELOG.md"]
+
+[dependencies]

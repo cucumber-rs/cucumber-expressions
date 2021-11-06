@@ -6,5 +6,6 @@ standard-macro-braces = [
     { name = "assert", brace = "(" },
     { name = "assert_eq", brace = "(" },
     { name = "assert_ne", brace = "(" },
+    { name = "matches", brace = "(" },
     { name = "vec", brace = "[" },
 ]

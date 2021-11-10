@@ -77,7 +77,7 @@ jobs:
 
       - run: cargo +nightly update -Z minimal-versions
 
-      - run: cargo check -p cucumber --no-default-features
+      - run: cargo check -p cucumber-expressions --no-default-features
           ${{ matrix.feature != '<none>'
           && format('--features {0}', matrix.feature)
           || '' }}

@@ -30,6 +30,8 @@ use super::{
 /// Struct for pairing [Cucumber Expressions][1] [AST][2] `Item` with custom
 /// `Parameters`.
 ///
+/// Every [`Parameter`] should be represented by single regex capturing group.
+///
 /// [1]: https://github.com/cucumber/cucumber-expressions#readme
 /// [2]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 #[derive(Clone, Copy, Debug)]
@@ -47,6 +49,8 @@ pub struct WithParameters<Item, Parameters> {
 /// Provider for custom [`Parameter`]s.
 pub trait ParametersProvider<Input> {
     /// Returned value, that will be inserted into [`Regex`].
+    ///
+    /// Should be represented by single [`Regex`] capturing group.
     ///
     /// [`Regex`]: regex::Regex
     type Value;

@@ -12,8 +12,10 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 ### Added
 
 - [Cucumber Expressions] AST and parser. ([#1])
+- [Cucumber Expressions] AST into `Regex` expansion. ([#2])
 
 [#1]: /../../pull/1
+[#2]: /../../pull/2
 
 
 

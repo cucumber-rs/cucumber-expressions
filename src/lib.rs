@@ -102,6 +102,9 @@ mod combinator;
 pub mod expand;
 pub mod parse;
 
+// TODO: remove once https://github.com/JelteF/derive_more/pull/175 is merged.
+use syn as _;
+
 #[doc(inline)]
 pub use self::ast::{
     Alternation, Alternative, Expression, Optional, Parameter,

@@ -22,6 +22,11 @@ default = ["expand-into-regex"]
 # Enables expansion into Regex
 expand-into-regex = ["either", "regex"]
 
+# TODO: remove this, once https://github.com/JelteF/derive_more/pull/175 is
+#       merged
+[patch.crates-io]
+syn = { git = "https://github.com/dtolnay/syn", tag = "1.0.81" }
+
 [dependencies]
 derive_more = { version = "0.99.16", features = ["as_ref", "deref", "deref_mut", "display", "error", "from", "into"], default_features = false }
 nom = "7.0"

@@ -3,6 +3,7 @@ name = "cucumber-expressions"
 version = "0.1.0-dev"
 edition = "2021"
 rust-version = "1.56"
+description = "Cucumber Expressions AST and parser."
 license = "MIT OR Apache-2.0"
 authors = [
     "Ilya Solovyiov <ilya.solovyiov@gmail.com>",
@@ -16,4 +17,16 @@ categories = ["compilers", "parser-implementations"]
 keywords = ["cucumber", "expression", "expressions", "cucumber-expressions"]
 include = ["/src/", "/LICENSE-*", "/README.md", "/CHANGELOG.md"]
 
+[features]
+default = ["expand-into-regex"]
+# Enables expansion into Regex
+expand-into-regex = ["either", "regex"]
+
 [dependencies]
+derive_more = { version = "0.99.16", features = ["as_ref", "deref", "deref_mut", "display", "error", "from"], default_features = false }
+nom = "7.0"
+nom_locate = "4.0"
+
+# "expand-into-regex" feature dependencies
+either = { version = "1.6.1", optional = true }
+regex = { version = "1.5.4", optional = true }

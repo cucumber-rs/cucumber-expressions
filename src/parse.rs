@@ -55,9 +55,11 @@ pub const RESERVED_CHARS: &str = r#"{}()\/ "#;
 /// ## Irrecoverable [`Failure`]
 ///
 /// - If `normal` parser fails
+/// - [`EscapedEndOfLine`]
 /// - [`EscapedNonReservedCharacter`]
 ///
 /// [`Error`]: Err::Error
+/// [`EscapedEndOfLine`]: Error::EscapedEndOfLine
 /// [`EscapedNonReservedCharacter`]: Error::EscapedNonReservedCharacter
 /// [`Failure`]: Err::Failure
 fn escaped_reserved_chars0<'a, Input: 'a, F, O1>(
@@ -81,10 +83,11 @@ where
         combinator::escaped0(normal, '\\', one_of(RESERVED_CHARS)),
         |e| {
             if let Err::Error(Error::Other(span, ErrorKind::Escaped)) = e {
-                let span = (span.input_len() > 0)
-                    .then(|| span.take(1))
-                    .unwrap_or(span);
-                Error::EscapedNonReservedCharacter(span).failure()
+                match span.input_len() {
+                    1 => Error::EscapedEndOfLine(span),
+                    n if n > 1 =>  Error::EscapedNonReservedCharacter(span.take(2)),
+                    _ => Error::EscapedNonReservedCharacter(span),
+                }.failure()
             } else {
                 e
             }
@@ -225,6 +228,7 @@ where
 ///
 /// - [`AlternationInOptional`]
 /// - [`EmptyOptional`]
+/// - [`EscapedEndOfLine`]
 /// - [`EscapedNonReservedCharacter`]
 /// - [`NestedOptional`]
 /// - [`ParameterInOptional`]
@@ -235,6 +239,7 @@ where
 /// [`Failure`]: Err::Failure
 /// [`AlternationInOptional`]: Error::AlternationInOptional
 /// [`EmptyOptional`]: Error::EmptyOptional
+/// [`EscapedEndOfLine`]: Error::EscapedEndOfLine
 /// [`EscapedNonReservedCharacter`]: Error::EscapedNonReservedCharacter
 /// [`NestedOptional`]: Error::NestedOptional
 /// [`ParameterInOptional`]: Error::ParameterInOptional
@@ -702,6 +707,16 @@ where
     )]
     EscapedNonReservedCharacter(#[error(not(source))] Input),
 
+    /// Escaped EOL.
+    #[display(
+    fmt = "\
+        {}\n\
+        The end of line can not be escaped.
+        You can use '\\' to escape the the '\'.",
+    _0
+    )]
+    EscapedEndOfLine(#[error(not(source))] Input),
+
     /// Unknown error.
     #[display(
         fmt = "\
@@ -841,7 +856,7 @@ mod spec {
 
             match err {
                 Err::Failure(Error::EscapedNonReservedCharacter(e)) => {
-                    assert_eq!(*e, "\\");
+                    assert_eq!(*e, "\\r");
                 }
                 Err::Incomplete(_) | Err::Error(_) | Err::Failure(_) => {
                     panic!("wrong error: {:?}", err)
@@ -1019,7 +1034,7 @@ mod spec {
 
             match err {
                 Err::Failure(Error::EscapedNonReservedCharacter(e)) => {
-                    assert_eq!(*e, "\\");
+                    assert_eq!(*e, "\\r");
                 }
                 Err::Incomplete(_) | Err::Error(_) | Err::Failure(_) => {
                     panic!("wrong error: {:?}", err)
@@ -1264,8 +1279,8 @@ mod spec {
                     Err::Failure(Error::EscapedNonReservedCharacter(e1)),
                     Err::Failure(Error::EscapedNonReservedCharacter(e2)),
                 ) => {
-                    assert_eq!(*e1, "\\");
-                    assert_eq!(*e2, "\\");
+                    assert_eq!(*e1, "\\r");
+                    assert_eq!(*e2, "\\r");
                 }
                 _ => panic!("wrong error: {:?}", err),
             }
@@ -2249,9 +2264,9 @@ mod spec {
         }
 
         #[test]
-        fn err_on_single_slash() {
+        fn err_on_escaped_end_of_line() {
             match expression(Spanned::new("\\")).unwrap_err() {
-                Err::Failure(Error::EscapedNonReservedCharacter(_)) => {}
+                Err::Failure(Error::EscapedEndOfLine(_)) => {}
                 e @ (Err::Incomplete(_) | Err::Error(_) | Err::Failure(_)) => {
                     panic!("wrong err: {}", e)
                 }

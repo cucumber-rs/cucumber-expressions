@@ -277,7 +277,7 @@ mod escaped0_spec {
     }
 
     #[test]
-    fn errors_on_control_char() {
+    fn errors_on_ending_with_control_char() {
         assert_eq!(
             get_result("\\"),
             (

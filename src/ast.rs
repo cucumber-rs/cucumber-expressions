@@ -25,11 +25,11 @@ use crate::parse;
 /// [`str`] along with its location information in the original string.
 pub type Spanned<'s> = LocatedSpan<&'s str>;
 
-/// Top-level [`cucumber-expression`][3].
+/// Top-level [`cucumber-expression`][1].
 ///
 /// See [`parse::expression()`] for the detailed grammar and examples.
 ///
-/// [3]: https://tinyurl.com/cucumber-expr-spec#grammar
+/// [1]: https://tinyurl.com/cucumber-expr-spec#grammar
 #[derive(AsRef, Clone, Debug, Deref, DerefMut, Eq, PartialEq)]
 pub struct Expression<Input>(pub Vec<SingleExpression<Input>>);
 

@@ -85,9 +85,12 @@ where
             if let Err::Error(Error::Other(span, ErrorKind::Escaped)) = e {
                 match span.input_len() {
                     1 => Error::EscapedEndOfLine(span),
-                    n if n > 1 =>  Error::EscapedNonReservedCharacter(span.take(2)),
+                    n if n > 1 => {
+                        Error::EscapedNonReservedCharacter(span.take(2))
+                    }
                     _ => Error::EscapedNonReservedCharacter(span),
-                }.failure()
+                }
+                .failure()
             } else {
                 e
             }
@@ -709,11 +712,11 @@ where
 
     /// Escaped EOL.
     #[display(
-    fmt = "\
+        fmt = "\
         {}\n\
         The end of line can not be escaped.
         You can use '\\' to escape the the '\'.",
-    _0
+        _0
     )]
     EscapedEndOfLine(#[error(not(source))] Input),
 

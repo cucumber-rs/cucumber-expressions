@@ -13,8 +13,8 @@ Rust implementation of [Cucumber Expressions].
 This crate provides [AST] parser, and [Regex] expansion of [Cucumber Expressions].
 
 ```rust
-# use cucumber_expressions::Expression;
-#
+use cucumber_expressions::Expression;
+
 let re = Expression::regex("I have {int} cucumbers in my belly").unwrap();
 let caps = re.captures("I have 42 cucumbers in my belly").unwrap();
 

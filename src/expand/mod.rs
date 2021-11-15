@@ -47,6 +47,9 @@ impl<'s> Expression<Spanned<'s>> {
     /// | `{string}`      | Matches single-quoted or double-quoted strings |
     /// | `{}` anonymous  | Matches anything (`/.*/`) |
     ///
+    /// To expand [`Expression`] with custom parameter types in addition to the
+    /// built-in ones, see [`Expression::regex_with_parameters()`].
+    ///
     /// # Errors
     ///
     /// See [`Error`] for more details.
@@ -142,7 +145,7 @@ pub trait IntoRegexCharIter<Input: fmt::Display> {
     /// [`Iterator`] for transforming into [`Regex`].
     type Iter: Iterator<Item = Result<char, UnknownParameterError<Input>>>;
 
-    /// Returns [`Iterator`] for transforming into [`Regex`].
+    /// Returns [`Iterator`] of [`char`]s for transforming into [`Regex`].
     fn into_regex_char_iter(self) -> Self::Iter;
 }
 

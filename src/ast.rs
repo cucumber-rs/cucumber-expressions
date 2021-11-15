@@ -102,7 +102,7 @@ pub enum SingleExpression<Input> {
 #[derive(AsRef, Clone, Debug, Deref, DerefMut, Eq, PartialEq)]
 pub struct Alternation<Input>(pub Vec<SingleAlternation<Input>>);
 
-/// Building block an [`Alternation`].
+/// Building block of an [`Alternation`].
 pub type SingleAlternation<Input> = Vec<Alternative<Input>>;
 
 impl<Input: InputLength> Alternation<Input> {

@@ -100,10 +100,11 @@ where
 
 /// # Syntax
 ///
-/// ```text
-/// parameter       := '{' (name | '\' name_to_escape)* '}'
-/// name            := ^name_to_escape
-/// name_to_escape  := '{' | '}' | '(' | '/' | '\'
+/// [EBNF] grammar.
+/// ```ebnf
+/// parameter       = '{', name*, '}'
+/// name            = (- name-to-escape) | ('\', name-to-escape)
+/// name-to-escape  = '{' | '}' | '(' | '/' | '\'
 /// ```
 ///
 /// # Example
@@ -131,6 +132,7 @@ where
 /// - [`UnescapedReservedCharacter`]
 /// - [`UnfinishedParameter`]
 ///
+/// [EBNF]: https://en.wikipedia.org/wiki/Extended_Backus–Naur_form
 /// [`Error`]: Err::Error
 /// [`Failure`]: Err::Failure
 /// [`EscapedNonReservedCharacter`]: Error::EscapedNonReservedCharacter
@@ -205,10 +207,11 @@ where
 
 /// # Syntax
 ///
-/// ```text
-/// optional           := '(' (text_in_optional | '\' optional_to_escape)+ ')'
-/// text_in_optional   := ^optional_to_escape
-/// optional_to_escape := '(' | ')' | '{' | '/' | '\'
+/// [EBNF] grammar.
+/// ```ebnf
+/// optional           = '(' text-in-optional+ ')'
+/// text-in-optional   = (- optional-to-escape) | ('\', optional-to-escape)
+/// optional-to-escape = '(' | ')' | '{' | '/' | '\'
 /// ```
 ///
 /// # Example
@@ -238,6 +241,7 @@ where
 /// - [`UnescapedReservedCharacter`]
 /// - [`UnfinishedOptional`]
 ///
+/// [EBNF]: https://en.wikipedia.org/wiki/Extended_Backus–Naur_form
 /// [`Error`]: Err::Error
 /// [`Failure`]: Err::Failure
 /// [`AlternationInOptional`]: Error::AlternationInOptional
@@ -323,12 +327,12 @@ where
 
 /// # Syntax
 ///
-/// ```text
-/// alternative             := optional
-///                            | (text_without_whitespace
-///                               | '\' whitespace_and_special)+
-/// text_without_whitespace := ^whitespace_and_special
-/// whitespace_and_special  := ' ' | '(' | '{' | '/' | '\'
+/// [EBNF] grammar.
+/// ```ebnf
+/// alternative           = optional | (text-in-alternative+)
+/// text-in-alternative   = (- alternative-to-escape)
+///                          | ('\', alternative-to-escape)
+/// alternative-to-escape = ' ' | '(' | '{' | '/' | '\'
 /// ```
 ///
 /// # Example
@@ -347,6 +351,7 @@ where
 ///
 /// Any [`Failure`] of [`optional()`].
 ///
+/// [EBNF]: https://en.wikipedia.org/wiki/Extended_Backus–Naur_form
 /// [`Failure`]: Err::Failure
 pub fn alternative<'a, Input: 'a>(
     input: Input,
@@ -381,10 +386,11 @@ where
 
 /// # Grammar
 ///
-/// ```text
-/// alternation        := single_alternation (`/` single_alternation)+
-/// single_alternation := ((text_without_whitespace+ optional*)
-///                         | (optional+ text_without_whitespace+))+
+/// [EBNF] grammar
+/// ```ebnf
+/// alternation        = single-alternation, (`/`, single-alternation)+
+/// single-alternation = ((text-in-alternative+, optional*)
+///                        | (optional+, text-in-alternative+))+
 /// ```
 ///
 /// # Example
@@ -409,6 +415,7 @@ where
 /// - [`EmptyAlternation`]
 /// - [`OnlyOptionalInAlternation`]
 ///
+/// [EBNF]: https://en.wikipedia.org/wiki/Extended_Backus–Naur_form
 /// [`Error`]: Err::Error
 /// [`Failure`]: Err::Failure
 /// [`EmptyAlternation`]: Error::EmptyAlternation
@@ -464,12 +471,16 @@ where
 
 /// # Syntax
 ///
-/// ```text
-/// single_expression := alternation
-///                      | optional
-///                      | parameter
-///                      | text_without_whitespace+
-///                      | whitespace
+/// [EBNF] grammar.
+/// ```ebnf
+/// single-expression       = alternation
+///                            | optional
+///                            | parameter
+///                            | text-without-whitespace+
+///                            | whitespace
+/// text-without-whitespace = (- (text-to-escape | whitespace))
+///                            | ('\', text-to-escape)
+/// text-to-escape          = '(' | '{' | '/' | '\'
 /// ```
 ///
 /// # Example
@@ -487,6 +498,7 @@ where
 ///
 /// Any [`Failure`] of [`alternation()`], [`optional()`] or [`parameter()`].
 ///
+/// [EBNF]: https://en.wikipedia.org/wiki/Extended_Backus–Naur_form
 /// [`Error`]: Err::Error
 /// [`Failure`]: Err::Failure
 /// [`EmptyAlternation`]: Error::EmptyAlternation
@@ -527,8 +539,9 @@ where
 
 /// # Syntax
 ///
-/// ```text
-/// expression := single_expression*
+/// [EBNF] grammar.
+/// ```ebnf
+/// expression = single-expression*
 /// ```
 ///
 /// # Example
@@ -548,6 +561,7 @@ where
 ///
 /// Any [`Failure`] of [`alternation()`], [`optional()`] or [`parameter()`].
 ///
+/// [EBNF]: https://en.wikipedia.org/wiki/Extended_Backus–Naur_form
 /// [`Error`]: Err::Error
 /// [`Failure`]: Err::Failure
 /// [`EmptyAlternation`]: Error::EmptyAlternation

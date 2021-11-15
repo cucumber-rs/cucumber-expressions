@@ -30,10 +30,12 @@ use super::{
 /// Struct for pairing [Cucumber Expressions][1] [AST][2] `Item` with custom
 /// `Parameters`.
 ///
-/// Every [`Parameter`] should be represented by single regex capturing group.
+/// Every [`Parameter`] should be represented by single [`Regex`] capturing
+/// group.
 ///
 /// [1]: https://github.com/cucumber/cucumber-expressions#readme
 /// [2]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
+/// [`Regex`]: regex::Regex
 #[derive(Clone, Copy, Debug)]
 pub struct WithParameters<Item, Parameters> {
     /// [Cucumber Expressions][1] [AST][2] `Item`.
@@ -55,7 +57,7 @@ pub trait ParametersProvider<Input> {
     /// [`Regex`]: regex::Regex
     type Value;
 
-    /// Returns [`Value`], if present.
+    /// Returns [`Value`] corresponding to the `input`, if present.
     ///
     /// [`Value`]: Self::Value
     fn get(&self, input: &Input) -> Option<Self::Value>;
@@ -81,7 +83,8 @@ where
     }
 }
 
-// false positive: https://github.com/rust-lang/rust-clippy/issues/7360
+// false positive:
+// TODO: remove once fixed: https://github.com/rust-lang/rust-clippy/issues/7360
 #[allow(clippy::type_repetition_in_bounds)]
 impl<Input, Pars> IntoRegexCharIter<Input>
     for WithParameters<Expression<Input>, Pars>
@@ -132,7 +135,8 @@ type ExpressionWithParsIter<I, P> = iter::Chain<
     iter::Once<Result<char, UnknownParameterError<I>>>,
 >;
 
-// false positive: https://github.com/rust-lang/rust-clippy/issues/7360
+// false positive:
+// TODO: remove once fixed: https://github.com/rust-lang/rust-clippy/issues/7360
 #[allow(clippy::type_repetition_in_bounds)]
 impl<Input, Pars> IntoRegexCharIter<Input>
     for WithParameters<SingleExpression<Input>, Pars>
@@ -169,7 +173,8 @@ type SingleExprWithParsIter<I, P> = Either<
     SingleExpressionIter<I>,
 >;
 
-// false positive: https://github.com/rust-lang/rust-clippy/issues/7360
+// false positive:
+// TODO: remove once fixed: https://github.com/rust-lang/rust-clippy/issues/7360
 #[allow(clippy::type_repetition_in_bounds)]
 impl<Input, P> IntoRegexCharIter<Input> for WithParameters<Parameter<Input>, P>
 where

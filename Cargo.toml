@@ -21,3 +21,6 @@ include = ["/src/", "/LICENSE-*", "/README.md", "/CHANGELOG.md"]
 derive_more = { version = "0.99.16", features = ["as_ref", "deref", "deref_mut", "display", "error"], default_features = false }
 nom = "7.0"
 nom_locate = "4.0"
+
+# TODO: remove once https://github.com/JelteF/derive_more/pull/175 is merged.
+syn = "1.0.81"

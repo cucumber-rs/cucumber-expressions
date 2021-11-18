@@ -15,6 +15,42 @@ This crate provides [AST] and parser of [Cucumber Expressions].
 
 
 
+## Grammar
+
+This implementation follows a context-free grammar, [which isn't yet merged][1]. Original grammar is impossible to follow while creating a performant parser, as it consists errors and describes not an exact [Cucumber Expressions] language, but rather some superset language, while being also context-sensitive. In case you've found some inconsistencies between this implementation and the ones in other languages, please file an issue! 
+
+[EBNF] spec of the current context-free grammar implemented by this crate:
+```ebnf
+expression              = single-expression*
+
+single-expression       = alternation
+                           | optional
+                           | parameter
+                           | text-without-whitespace+
+                           | whitespace
+text-without-whitespace = (- (text-to-escape | whitespace))
+                           | ('\', text-to-escape)
+text-to-escape          = '(' | '{' | '/' | '\'
+
+alternation             = single-alternation, (`/`, single-alternation)+
+single-alternation      = ((text-in-alternative+, optional*)
+                            | (optional+, text-in-alternative+))+
+text-in-alternative     = (- alternative-to-escape)
+                           | ('\', alternative-to-escape)
+alternative-to-escape   = ' ' | '(' | '{' | '/' | '\'
+
+optional                = '(' text-in-optional+ ')'
+text-in-optional        = (- optional-to-escape) | ('\', optional-to-escape)
+optional-to-escape      = '(' | ')' | '{' | '/' | '\'
+
+parameter               = '{', name*, '}'
+name                    = (- name-to-escape) | ('\', name-to-escape)
+name-to-escape          = '{' | '}' | '(' | '/' | '\'
+```
+
+
+
+
 ## License
 
 This project is licensed under either of
@@ -29,3 +65,6 @@ at your option.
 
 [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 [Cucumber Expressions]: https://github.com/cucumber/cucumber-expressions#readme
+[EBNF]: https://en.wikipedia.org/wiki/Extended_Backus–Naur_form
+
+[1]: https://github.com/cucumber/cucumber-expressions/issues/41

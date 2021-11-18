@@ -1,3 +1,13 @@
+// Copyright (c) 2021  Brendan Molloy <brendan@bbqsrc.net>,
+//                     Ilya Solovyiov <ilya.solovyiov@gmail.com>,
+//                     Kai Ren <tyranron@gmail.com>
+//
+// Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+// http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+// <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+// option. This file may not be copied, modified, or distributed
+// except according to those terms.
+
 #![doc(
     html_logo_url = "https://avatars.githubusercontent.com/u/91469139?s=128",
     html_favicon_url = "https://avatars.githubusercontent.com/u/91469139?s=256"
@@ -85,3 +95,19 @@
     unused_results,
     variant_size_differences
 )]
+
+pub mod ast;
+mod combinator;
+pub mod parse;
+
+// TODO: Remove once `derive_more` 0.99.17 is released.
+use syn as _;
+
+#[doc(inline)]
+pub use self::{
+    ast::{
+        Alternation, Alternative, Expression, Optional, Parameter,
+        SingleAlternation, SingleExpression, Spanned,
+    },
+    parse::Error,
+};

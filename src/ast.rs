@@ -14,7 +14,7 @@
 //!
 //! [1]: https://github.com/cucumber/cucumber-expressions#readme
 //! [2]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
-//! [3]: https://tinyurl.com/cucumber-expr-spec#grammar
+//! [3]: crate#grammar
 
 use derive_more::{AsRef, Deref, DerefMut};
 use nom::{error::ErrorKind, Err, InputLength};
@@ -25,11 +25,11 @@ use crate::parse;
 /// [`str`] along with its location information in the original string.
 pub type Spanned<'s> = LocatedSpan<&'s str>;
 
-/// Top-level [`cucumber-expression`][3].
+/// Top-level [`cucumber-expression`][1].
 ///
 /// See [`parse::expression()`] for the detailed grammar and examples.
 ///
-/// [3]: https://tinyurl.com/cucumber-expr-spec#grammar
+/// [1]: crate#grammar
 #[derive(AsRef, Clone, Debug, Deref, DerefMut, Eq, PartialEq)]
 pub struct Expression<Input>(pub Vec<SingleExpression<Input>>);
 
@@ -56,44 +56,44 @@ impl<'s> Expression<Spanned<'s>> {
     /// # Errors
     ///
     /// See [`parse::Error`] for details.
-    pub fn parse<I: AsRef<str>>(
+    pub fn parse<I: AsRef<str> + ?Sized>(
         input: &'s I,
     ) -> Result<Self, parse::Error<Spanned<'s>>> {
         Self::try_from(input.as_ref())
     }
 }
 
-/// Single entry of a [`cucumber-expression`][3].
+/// Single entry of a [`cucumber-expression`][1].
 ///
 /// See [`parse::single_expression()`] for the detailed grammar and examples.
 ///
-/// [3]: https://tinyurl.com/cucumber-expr-spec#grammar
+/// [1]: crate#grammar
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum SingleExpression<Input> {
-    /// [`alternation`][3] expression.
+    /// [`alternation`][1] expression.
     ///
-    /// [3]: https://tinyurl.com/cucumber-expr-spec#grammar
+    /// [1]: crate#grammar
     Alternation(Alternation<Input>),
 
-    /// [`optional`][3] expression.
+    /// [`optional`][1] expression.
     ///
-    /// [3]: https://tinyurl.com/cucumber-expr-spec#grammar
+    /// [1]: crate#grammar
     Optional(Optional<Input>),
 
-    /// [`parameter`][3] expression.
+    /// [`parameter`][1] expression.
     ///
-    /// [3]: https://tinyurl.com/cucumber-expr-spec#grammar
+    /// [1]: crate#grammar
     Parameter(Parameter<Input>),
 
     /// Text without whitespaces.
     Text(Input),
 
-    /// Whitespaces are treated as a special case to avoid lookaheads and
-    /// lookbehinds described in the [architecture][1]. This allows parsing to
-    /// have `O(n)` complexity.
+    /// Whitespaces are treated as a special case to avoid placing every `text`
+    /// character in separate [AST] node, as described in [grammar spec].
     ///
-    /// [1]: https://tinyurl.com/cucumber-expr-spec
-    Whitespace,
+    /// [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
+    /// [grammar spec]: crate#grammar
+    Whitespaces(Input),
 }
 
 /// Allows to match one of [`SingleAlternation`]s.
@@ -102,7 +102,7 @@ pub enum SingleExpression<Input> {
 #[derive(AsRef, Clone, Debug, Deref, DerefMut, Eq, PartialEq)]
 pub struct Alternation<Input>(pub Vec<SingleAlternation<Input>>);
 
-/// Building block an [`Alternation`].
+/// Building block of an [`Alternation`].
 pub type SingleAlternation<Input> = Vec<Alternative<Input>>;
 
 impl<Input: InputLength> Alternation<Input> {
@@ -135,14 +135,16 @@ impl<Input: InputLength> Alternation<Input> {
     }
 }
 
-/// [`alternative`][3] expression.
+/// [`alternative`][1] expression.
 ///
 /// See [`parse::alternative()`] for the detailed grammar and examples.
+///
+/// [1]: crate#grammar
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Alternative<Input> {
-    /// [`optional`][3] expression.
+    /// [`optional`][1] expression.
     ///
-    /// [3]: https://tinyurl.com/cucumber-expr-spec#grammar
+    /// [1]: crate#grammar
     Optional(Optional<Input>),
 
     /// Text.

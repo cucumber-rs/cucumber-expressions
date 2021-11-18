@@ -14,14 +14,14 @@
 //!
 //! [1]: https://github.com/cucumber/cucumber-expressions#readme
 //! [2]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
-//! [3]: https://tinyurl.com/cucumber-expr-spec#grammar
+//! [3]: crate#grammar
 
 use std::{fmt::Display, ops::RangeFrom};
 
 use derive_more::{Display, Error};
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_while},
+    bytes::complete::{tag, take_while, take_while1},
     character::complete::one_of,
     combinator::{map, peek, verify},
     error::{ErrorKind, ParseError},
@@ -55,9 +55,11 @@ pub const RESERVED_CHARS: &str = r#"{}()\/ "#;
 /// ## Irrecoverable [`Failure`]
 ///
 /// - If `normal` parser fails
+/// - [`EscapedEndOfLine`]
 /// - [`EscapedNonReservedCharacter`]
 ///
 /// [`Error`]: Err::Error
+/// [`EscapedEndOfLine`]: Error::EscapedEndOfLine
 /// [`EscapedNonReservedCharacter`]: Error::EscapedNonReservedCharacter
 /// [`Failure`]: Err::Failure
 fn escaped_reserved_chars0<'a, Input: 'a, F, O1>(
@@ -81,10 +83,14 @@ where
         combinator::escaped0(normal, '\\', one_of(RESERVED_CHARS)),
         |e| {
             if let Err::Error(Error::Other(span, ErrorKind::Escaped)) = e {
-                let span = (span.input_len() > 0)
-                    .then(|| span.take(1))
-                    .unwrap_or(span);
-                Error::EscapedNonReservedCharacter(span).failure()
+                match span.input_len() {
+                    1 => Error::EscapedEndOfLine(span),
+                    n if n > 1 => {
+                        Error::EscapedNonReservedCharacter(span.take(2))
+                    }
+                    _ => Error::EscapedNonReservedCharacter(span),
+                }
+                .failure()
             } else {
                 e
             }
@@ -94,10 +100,11 @@ where
 
 /// # Syntax
 ///
-/// ```text
-/// parameter       := '{' (name | '\' name_to_escape)* '}'
-/// name            := ^name_to_escape
-/// name_to_escape  := '{' | '}' | '(' | '/' | '\'
+/// [EBNF] grammar.
+/// ```ebnf
+/// parameter       = '{', name*, '}'
+/// name            = (- name-to-escape) | ('\', name-to-escape)
+/// name-to-escape  = '{' | '}' | '(' | '/' | '\'
 /// ```
 ///
 /// # Example
@@ -125,6 +132,7 @@ where
 /// - [`UnescapedReservedCharacter`]
 /// - [`UnfinishedParameter`]
 ///
+/// [EBNF]: https://en.wikipedia.org/wiki/Extended_Backus–Naur_form
 /// [`Error`]: Err::Error
 /// [`Failure`]: Err::Failure
 /// [`EscapedNonReservedCharacter`]: Error::EscapedNonReservedCharacter
@@ -199,10 +207,11 @@ where
 
 /// # Syntax
 ///
-/// ```text
-/// optional           := '(' (text_in_optional | '\' optional_to_escape)+ ')'
-/// text_in_optional   := ^optional_to_escape
-/// optional_to_escape := '(' | ')' | '{' | '/' | '\'
+/// [EBNF] grammar.
+/// ```ebnf
+/// optional           = '(' text-in-optional+ ')'
+/// text-in-optional   = (- optional-to-escape) | ('\', optional-to-escape)
+/// optional-to-escape = '(' | ')' | '{' | '/' | '\'
 /// ```
 ///
 /// # Example
@@ -225,16 +234,19 @@ where
 ///
 /// - [`AlternationInOptional`]
 /// - [`EmptyOptional`]
+/// - [`EscapedEndOfLine`]
 /// - [`EscapedNonReservedCharacter`]
 /// - [`NestedOptional`]
 /// - [`ParameterInOptional`]
 /// - [`UnescapedReservedCharacter`]
 /// - [`UnfinishedOptional`]
 ///
+/// [EBNF]: https://en.wikipedia.org/wiki/Extended_Backus–Naur_form
 /// [`Error`]: Err::Error
 /// [`Failure`]: Err::Failure
 /// [`AlternationInOptional`]: Error::AlternationInOptional
 /// [`EmptyOptional`]: Error::EmptyOptional
+/// [`EscapedEndOfLine`]: Error::EscapedEndOfLine
 /// [`EscapedNonReservedCharacter`]: Error::EscapedNonReservedCharacter
 /// [`NestedOptional`]: Error::NestedOptional
 /// [`ParameterInOptional`]: Error::ParameterInOptional
@@ -315,12 +327,12 @@ where
 
 /// # Syntax
 ///
-/// ```text
-/// alternative             := optional
-///                            | (text_without_whitespace
-///                               | '\' whitespace_and_special)+
-/// text_without_whitespace := ^whitespace_and_special
-/// whitespace_and_special  := ' ' | '(' | '{' | '/' | '\'
+/// [EBNF] grammar.
+/// ```ebnf
+/// alternative           = optional | (text-in-alternative+)
+/// text-in-alternative   = (- alternative-to-escape)
+///                          | ('\', alternative-to-escape)
+/// alternative-to-escape = ' ' | '(' | '{' | '/' | '\'
 /// ```
 ///
 /// # Example
@@ -339,6 +351,7 @@ where
 ///
 /// Any [`Failure`] of [`optional()`].
 ///
+/// [EBNF]: https://en.wikipedia.org/wiki/Extended_Backus–Naur_form
 /// [`Failure`]: Err::Failure
 pub fn alternative<'a, Input: 'a>(
     input: Input,
@@ -373,10 +386,11 @@ where
 
 /// # Grammar
 ///
-/// ```text
-/// alternation        := single_alternation (`/` single_alternation)+
-/// single_alternation := ((text_without_whitespace+ optional*)
-///                         | (optional+ text_without_whitespace+))+
+/// [EBNF] grammar
+/// ```ebnf
+/// alternation        = single-alternation, (`/`, single-alternation)+
+/// single-alternation = ((text-in-alternative+, optional*)
+///                        | (optional+, text-in-alternative+))+
 /// ```
 ///
 /// # Example
@@ -401,6 +415,7 @@ where
 /// - [`EmptyAlternation`]
 /// - [`OnlyOptionalInAlternation`]
 ///
+/// [EBNF]: https://en.wikipedia.org/wiki/Extended_Backus–Naur_form
 /// [`Error`]: Err::Error
 /// [`Failure`]: Err::Failure
 /// [`EmptyAlternation`]: Error::EmptyAlternation
@@ -456,12 +471,16 @@ where
 
 /// # Syntax
 ///
-/// ```text
-/// single_expression := alternation
-///                      | optional
-///                      | parameter
-///                      | text_without_whitespace+
-///                      | whitespace
+/// [EBNF] grammar.
+/// ```ebnf
+/// single-expression       = alternation
+///                            | optional
+///                            | parameter
+///                            | text-without-whitespace+
+///                            | whitespace
+/// text-without-whitespace = (- (text-to-escape | whitespace))
+///                            | ('\', text-to-escape)
+/// text-to-escape          = '(' | '{' | '/' | '\'
 /// ```
 ///
 /// # Example
@@ -479,6 +498,7 @@ where
 ///
 /// Any [`Failure`] of [`alternation()`], [`optional()`] or [`parameter()`].
 ///
+/// [EBNF]: https://en.wikipedia.org/wiki/Extended_Backus–Naur_form
 /// [`Error`]: Err::Error
 /// [`Failure`]: Err::Failure
 /// [`EmptyAlternation`]: Error::EmptyAlternation
@@ -501,6 +521,7 @@ where
     for<'s> &'s str: FindToken<<Input as InputIter>::Item>,
 {
     let is_text_without_whitespace = |c| !" ({\\/".contains(c);
+    let is_whitespace = |c| c == ' ';
 
     alt((
         map(alternation, SingleExpression::Alternation),
@@ -513,14 +534,15 @@ where
             ),
             SingleExpression::Text,
         ),
-        map(tag(" "), |_| SingleExpression::Whitespace),
+        map(take_while1(is_whitespace), SingleExpression::Whitespaces),
     ))(input)
 }
 
 /// # Syntax
 ///
-/// ```text
-/// expression := single_expression*
+/// [EBNF] grammar.
+/// ```ebnf
+/// expression = single-expression*
 /// ```
 ///
 /// # Example
@@ -540,6 +562,7 @@ where
 ///
 /// Any [`Failure`] of [`alternation()`], [`optional()`] or [`parameter()`].
 ///
+/// [EBNF]: https://en.wikipedia.org/wiki/Extended_Backus–Naur_form
 /// [`Error`]: Err::Error
 /// [`Failure`]: Err::Failure
 /// [`EmptyAlternation`]: Error::EmptyAlternation
@@ -565,7 +588,7 @@ where
 }
 
 /// Possible parsing errors.
-#[derive(Debug, Display, Error, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Display, Error, Eq, PartialEq)]
 pub enum Error<Input>
 where
     Input: Display,
@@ -702,6 +725,16 @@ where
     )]
     EscapedNonReservedCharacter(#[error(not(source))] Input),
 
+    /// Escaped EOL.
+    #[display(
+        fmt = "\
+        {}\n\
+        The end of line can not be escaped.
+        You can use '\\' to escape the the '\'.",
+        _0
+    )]
+    EscapedEndOfLine(#[error(not(source))] Input),
+
     /// Unknown error.
     #[display(
         fmt = "\
@@ -751,21 +784,23 @@ mod spec {
     use nom::{error::ErrorKind, Err, IResult};
 
     use crate::{
-        parse::{alternation, alternative, expression, optional, parameter},
-        Alternative, Error, Spanned,
+        parse::{
+            alternation, alternative, expression, optional, parameter, Error,
+        },
+        Alternative, Spanned,
     };
 
     fn eq(left: impl AsRef<str>, right: impl AsRef<str>) {
         assert_eq!(
             left.as_ref()
-                .replace(' ', "")
-                .replace('\n', "")
-                .replace('\t', ""),
+                .lines()
+                .map(|line| line.trim_start().trim_end_matches('\n'))
+                .collect::<String>(),
             right
                 .as_ref()
-                .replace(' ', "")
-                .replace('\n', "")
-                .replace('\t', ""),
+                .lines()
+                .map(|line| line.trim_end_matches('\n').trim())
+                .collect::<String>(),
         );
     }
 
@@ -839,7 +874,7 @@ mod spec {
 
             match err {
                 Err::Failure(Error::EscapedNonReservedCharacter(e)) => {
-                    assert_eq!(*e, "\\");
+                    assert_eq!(*e, "\\r");
                 }
                 Err::Incomplete(_) | Err::Error(_) | Err::Failure(_) => {
                     panic!("wrong error: {:?}", err)
@@ -1017,7 +1052,7 @@ mod spec {
 
             match err {
                 Err::Failure(Error::EscapedNonReservedCharacter(e)) => {
-                    assert_eq!(*e, "\\");
+                    assert_eq!(*e, "\\r");
                 }
                 Err::Incomplete(_) | Err::Error(_) | Err::Failure(_) => {
                     panic!("wrong error: {:?}", err)
@@ -1262,8 +1297,8 @@ mod spec {
                     Err::Failure(Error::EscapedNonReservedCharacter(e1)),
                     Err::Failure(Error::EscapedNonReservedCharacter(e2)),
                 ) => {
-                    assert_eq!(*e1, "\\");
-                    assert_eq!(*e2, "\\");
+                    assert_eq!(*e1, "\\r");
+                    assert_eq!(*e2, "\\r");
                 }
                 _ => panic!("wrong error: {:?}", err),
             }
@@ -1279,35 +1314,35 @@ mod spec {
         #[test]
         fn basic() {
             let ast = format!(
-                "{:?}",
+                "{:#?}",
                 unwrap_parser(alternation(Spanned::new("l/🦀")))
             );
 
             eq(
                 ast,
-                r#"Alternation (
+                r#"Alternation(
                     [
                         [
-                            Text (
+                            Text(
                                 LocatedSpan {
                                     offset: 0,
                                     line: 1,
                                     fragment: "l",
-                                    extra: ()
-                                }
-                            )
+                                    extra: (),
+                                },
+                            ),
                         ],
                         [
-                            Text (
+                            Text(
                                 LocatedSpan {
                                     offset: 2,
                                     line: 1,
                                     fragment: "🦀",
-                                    extra: ()
-                                }
-                            )
-                        ]
-                    ]
+                                    extra: (),
+                                },
+                            ),
+                        ],
+                    ],
                 )"#,
             );
         }
@@ -1315,7 +1350,7 @@ mod spec {
         #[test]
         fn with_optionals() {
             let ast = format!(
-                "{:?}",
+                "{:#?}",
                 unwrap_parser(alternation(Spanned::new(
                     "l(opt)/(opt)r/l(opt)r"
                 ))),
@@ -1323,77 +1358,77 @@ mod spec {
 
             eq(
                 ast,
-                r#"Alternation (
+                r#"Alternation(
                     [
                         [
-                            Text (
+                            Text(
                                 LocatedSpan {
                                     offset: 0,
                                     line: 1,
                                     fragment: "l",
-                                    extra: ()
-                                }
+                                    extra: (),
+                                },
                             ),
-                            Optional (
-                                Optional (
+                            Optional(
+                                Optional(
                                     LocatedSpan {
                                         offset: 2,
                                         line: 1,
                                         fragment: "opt",
-                                        extra: ()
-                                    }
-                                )
-                            )
+                                        extra: (),
+                                    },
+                                ),
+                            ),
                         ],
                         [
-                            Optional (
-                                Optional (
+                            Optional(
+                                Optional(
                                     LocatedSpan {
                                         offset: 8,
                                         line: 1,
                                         fragment: "opt",
-                                        extra: ()
-                                    }
-                                )
+                                        extra: (),
+                                    },
+                                ),
                             ),
-                            Text (
+                            Text(
                                 LocatedSpan {
                                     offset: 12,
                                     line: 1,
                                     fragment: "r",
-                                    extra: ()
-                                }
-                            )
+                                    extra: (),
+                                },
+                            ),
                         ],
                         [
-                            Text (
+                            Text(
                                 LocatedSpan {
                                     offset: 14,
                                     line: 1,
                                     fragment: "l",
-                                    extra: ()
-                                }
+                                    extra: (),
+                                },
                             ),
-                            Optional (
-                                Optional (
+                            Optional(
+                                Optional(
                                     LocatedSpan {
                                         offset: 16,
                                         line: 1,
                                         fragment: "opt",
-                                        extra: ()
-                                    }
-                                )
+                                        extra: (),
+                                    },
+                                ),
                             ),
-                            Text (
+                            Text(
                                 LocatedSpan {
                                     offset: 20,
                                     line: 1,
                                     fragment: "r",
-                                    extra: ()
-                                }
-                            )
-                        ]
-                    ]
+                                    extra: (),
+                                },
+                            ),
+                        ],
+                    ],
                 )"#,
             );
         }
@@ -1402,7 +1437,7 @@ mod spec {
         #[test]
         fn with_more_optionals() {
             let ast = format!(
-                "{:?}",
+                "{:#?}",
                 unwrap_parser(alternation(Spanned::new(
                     "l(opt)(opt)/(opt)(opt)r/(opt)m(opt)"
                 ))),
@@ -1410,99 +1445,99 @@ mod spec {
 
             eq(
                 ast,
-                r#"Alternation (
+                r#"Alternation(
                     [
                         [
-                            Text (
+                            Text(
                                 LocatedSpan {
                                     offset: 0,
                                     line: 1,
                                     fragment: "l",
-                                    extra: ()
-                                }
+                                    extra: (),
+                                },
                             ),
-                            Optional (
-                                Optional (
+                            Optional(
+                                Optional(
                                     LocatedSpan {
                                         offset: 2,
                                         line: 1,
                                         fragment: "opt",
-                                        extra: ()
-                                    }
-                                )
+                                        extra: (),
+                                    },
+                                ),
                             ),
-                            Optional (
-                                Optional (
+                            Optional(
+                                Optional(
                                     LocatedSpan {
                                         offset: 7,
                                         line: 1,
                                         fragment: "opt",
-                                        extra: ()
-                                    }
-                                )
-                            )
+                                        extra: (),
+                                    },
+                                ),
+                            ),
                         ],
                         [
-                            Optional (
-                                Optional (
+                            Optional(
+                                Optional(
                                     LocatedSpan {
                                         offset: 13,
                                         line: 1,
                                         fragment: "opt",
-                                        extra: ()
-                                    }
-                                )
+                                        extra: (),
+                                    },
+                                ),
                             ),
-                            Optional (
-                                Optional (
+                            Optional(
+                                Optional(
                                     LocatedSpan {
                                         offset: 18,
                                         line: 1,
                                         fragment: "opt",
-                                        extra: ()
-                                    }
-                                )
+                                        extra: (),
+                                    },
+                                ),
                             ),
-                            Text (
+                            Text(
                                 LocatedSpan {
                                     offset: 22,
                                     line: 1,
                                     fragment: "r",
-                                    extra: ()
-                                }
-                            )
+                                    extra: (),
+                                },
+                            ),
                         ],
                         [
-                            Optional (
-                                Optional (
+                            Optional(
+                                Optional(
                                     LocatedSpan {
                                         offset: 25,
                                         line: 1,
                                         fragment: "opt",
-                                        extra: ()
-                                    }
-                                )
+                                        extra: (),
+                                    },
+                                ),
                             ),
-                            Text (
+                            Text(
                                 LocatedSpan {
                                     offset: 29,
                                     line: 1,
                                     fragment: "m",
-                                    extra: ()
-                                }
+                                    extra: (),
+                                },
                             ),
-                            Optional (
-                                Optional (
+                            Optional(
+                                Optional(
                                     LocatedSpan {
                                         offset: 31,
                                         line: 1,
                                         fragment: "opt",
-                                        extra: ()
-                                    }
-                                )
-                            )
-                        ]
-                    ]
+                                        extra: (),
+                                    },
+                                ),
+                            ),
+                        ],
+                    ],
                 )"#,
             );
         }
@@ -1589,40 +1624,40 @@ mod spec {
         #[test]
         fn allows_escaped_optional_parameter_types() {
             let ast = format!(
-                "{:?}",
+                "{:#?}",
                 unwrap_parser(expression(Spanned::new("\\({int})")))
             );
             eq(
                 ast,
-                r#"Expression (
+                r#"Expression(
                     [
-                        Text (
+                        Text(
                             LocatedSpan {
                                 offset: 0,
                                 line: 1,
                                 fragment: "\\(",
-                                extra: ()
-                            }
+                                extra: (),
+                            },
                         ),
-                        Parameter (
-                            Parameter (
+                        Parameter(
+                            Parameter(
                                 LocatedSpan {
                                     offset: 3,
                                     line: 1,
                                     fragment: "int",
-                                    extra: ()
-                                }
-                            )
+                                    extra: (),
+                                },
+                            ),
                         ),
-                        Text (
+                        Text(
                             LocatedSpan {
                                 offset: 7,
                                 line: 1,
                                 fragment: ")",
-                                extra: ()
-                            }
-                        )
-                    ]
+                                extra: (),
+                            },
+                        ),
+                    ],
                 )"#,
             );
         }
@@ -1630,76 +1665,76 @@ mod spec {
         #[test]
         fn allows_parameter_type_in_alternation() {
             let ast = format!(
-                "{:?}",
+                "{:#?}",
                 unwrap_parser(expression(Spanned::new("a/i{int}n/y")))
             );
             eq(
                 ast,
                 r#"Expression(
                     [
-                        Alternation (
-                            Alternation (
+                        Alternation(
+                            Alternation(
                                 [
                                     [
-                                        Text (
+                                        Text(
                                             LocatedSpan {
                                                 offset: 0,
                                                 line: 1,
                                                 fragment: "a",
-                                                extra: ()
-                                            }
-                                        )
+                                                extra: (),
+                                            },
+                                        ),
                                     ],
                                     [
-                                        Text (
+                                        Text(
                                             LocatedSpan {
                                                 offset: 2,
                                                 line: 1,
                                                 fragment: "i",
-                                                extra: ()
-                                            }
-                                        )
-                                    ]
-                                ]
-                            )
+                                                extra: (),
+                                            },
+                                        ),
+                                    ],
+                                ],
+                            ),
                         ),
-                        Parameter (
-                            Parameter (
+                        Parameter(
+                            Parameter(
                                 LocatedSpan {
                                     offset: 4,
                                     line: 1,
                                     fragment: "int",
-                                    extra: ()
-                                }
-                            )
+                                    extra: (),
+                                },
+                            ),
                         ),
-                        Alternation (
-                            Alternation (
+                        Alternation(
+                            Alternation(
                                 [
                                     [
-                                        Text (
+                                        Text(
                                             LocatedSpan {
                                                 offset: 8,
                                                 line: 1,
                                                 fragment: "n",
-                                                extra: ()
-                                            }
-                                        )
+                                                extra: (),
+                                            },
+                                        ),
                                     ],
                                     [
-                                        Text (
+                                        Text(
                                             LocatedSpan {
                                                 offset: 10,
                                                 line: 1,
                                                 fragment: "y",
-                                                extra: ()
-                                            }
-                                        )
-                                    ]
-                                ]
-                            )
-                        )
-                    ]
+                                                extra: (),
+                                            },
+                                        ),
+                                    ],
+                                ],
+                            ),
+                        ),
+                    ],
                 )"#,
             );
         }
@@ -1707,71 +1742,70 @@ mod spec {
         #[test]
         fn does_allow_parameter_adjacent_to_alternation() {
             let ast = format!(
-                "{:?}",
+                "{:#?}",
                 unwrap_parser(expression(Spanned::new("{int}st/nd/rd/th")))
             );
             eq(
                 ast,
-                r#"Expression (
+                r#"Expression(
                     [
-                        Parameter (
-                            Parameter (
+                        Parameter(
+                            Parameter(
                                 LocatedSpan {
                                     offset: 1,
                                     line: 1,
                                     fragment: "int",
-                                    extra: ()
-                                }
-                            )
+                                    extra: (),
+                                },
+                            ),
                         ),
-                        Alternation (
-                            Alternation (
+                        Alternation(
+                            Alternation(
                                 [
                                     [
-                                        Text (
+                                        Text(
                                             LocatedSpan {
                                                 offset: 5,
                                                 line: 1,
-                                                fragment:
-                                                "st",
-                                                extra: ()
-                                            }
-                                        )
+                                                fragment: "st",
+                                                extra: (),
+                                            },
+                                        ),
                                     ],
                                     [
-                                        Text (
+                                        Text(
                                             LocatedSpan {
                                                 offset: 8,
                                                 line: 1,
                                                 fragment: "nd",
-                                                extra: ()
-                                            }
-                                        )
+                                                extra: (),
+                                            },
+                                        ),
                                     ],
                                     [
-                                        Text (
+                                        Text(
                                             LocatedSpan {
                                                 offset: 11,
                                                 line: 1,
                                                 fragment: "rd",
-                                                extra: ()
-                                            }
-                                        )
+                                                extra: (),
+                                            },
+                                        ),
                                     ],
                                     [
-                                        Text (
+                                        Text(
                                             LocatedSpan {
                                                 offset: 14,
                                                 line: 1,
                                                 fragment: "th",
-                                                extra: ()
-                                            }
-                                        )
-                                    ]
-                                ]
-                            )
-                        )
-                    ]
+                                                extra: (),
+                                            },
+                                        ),
+                                    ],
+                                ],
+                            ),
+                        ),
+                    ],
                 )"#,
             );
         }
@@ -1936,60 +1970,74 @@ mod spec {
         #[test]
         fn matches_alternation() {
             let ast = format!(
-                "{:?}",
+                "{:#?}",
                 unwrap_parser(expression(Spanned::new(
                     "mice/rats and rats\\/mice"
                 )))
             );
             eq(
                 ast,
-                r#"Expression (
+                r#"Expression(
                     [
-                        Alternation (
-                            Alternation (
+                        Alternation(
+                            Alternation(
                                 [
                                     [
-                                        Text (
+                                        Text(
                                             LocatedSpan {
                                                 offset: 0,
                                                 line: 1,
                                                 fragment: "mice",
-                                                extra: ()
-                                            }
-                                        )
+                                                extra: (),
+                                            },
+                                        ),
                                     ],
                                     [
-                                        Text (
+                                        Text(
                                             LocatedSpan {
                                                 offset: 5,
                                                 line: 1,
                                                 fragment: "rats",
-                                                extra: ()
-                                            }
-                                        )
-                                    ]
-                                ]
-                            )
+                                                extra: (),
+                                            },
+                                        ),
+                                    ],
+                                ],
+                            ),
                         ),
-                        Whitespace,
-                        Text (
+                        Whitespaces(
+                            LocatedSpan {
+                                offset: 9,
+                                line: 1,
+                                fragment: " ",
+                                extra: (),
+                            },
+                        ),
+                        Text(
                             LocatedSpan {
                                 offset: 10,
                                 line: 1,
                                 fragment: "and",
-                                extra: ()
-                            }
+                                extra: (),
+                            },
                         ),
-                        Whitespace,
-                        Text (
+                        Whitespaces(
+                            LocatedSpan {
+                                offset: 13,
+                                line: 1,
+                                fragment: " ",
+                                extra: (),
+                            },
+                        ),
+                        Text(
                             LocatedSpan {
                                 offset: 14,
                                 line: 1,
                                 fragment: "rats\\/mice",
-                                extra: ()
-                            }
-                        )
-                    ]
+                                extra: (),
+                            },
+                        ),
+                    ],
                 )"#,
             );
         }
@@ -1997,22 +2045,22 @@ mod spec {
         #[test]
         fn matches_anonymous_parameter_type() {
             let ast =
-                format!("{:?}", unwrap_parser(expression(Spanned::new("{}"))));
+                format!("{:#?}", unwrap_parser(expression(Spanned::new("{}"))));
             eq(
                 ast,
-                r#"Expression (
+                r#"Expression(
                     [
-                        Parameter (
-                            Parameter (
+                        Parameter(
+                            Parameter(
                                 LocatedSpan {
                                     offset: 1,
                                     line: 1,
                                     fragment: "",
-                                    extra: ()
-                                }
-                            )
-                        )
-                    ]
+                                    extra: (),
+                                },
+                            ),
+                        ),
+                    ],
                 )"#,
             );
         }
@@ -2020,51 +2068,72 @@ mod spec {
         #[test]
         fn matches_doubly_escaped_parenthesis() {
             let ast = format!(
-                "{:?}",
+                "{:#?}",
                 unwrap_parser(expression(Spanned::new(
                     "three \\(exceptionally) \\{string} mice"
                 )))
             );
             eq(
                 ast,
-                r#"Expression (
+                r#"Expression(
                     [
-                        Text (
+                        Text(
                             LocatedSpan {
                                 offset: 0,
                                 line: 1,
                                 fragment: "three",
-                                extra: ()
-                            }
+                                extra: (),
+                            },
                         ),
-                        Whitespace,
-                        Text (
+                        Whitespaces(
+                            LocatedSpan {
+                                offset: 5,
+                                line: 1,
+                                fragment: " ",
+                                extra: (),
+                            },
+                        ),
+                        Text(
                             LocatedSpan {
                                 offset: 6,
                                 line: 1,
                                 fragment: "\\(exceptionally)",
-                                extra: ()
-                            }
+                                extra: (),
+                            },
                         ),
-                        Whitespace,
-                        Text (
+                        Whitespaces(
+                            LocatedSpan {
+                                offset: 22,
+                                line: 1,
+                                fragment: " ",
+                                extra: (),
+                            },
+                        ),
+                        Text(
                             LocatedSpan {
                                 offset: 23,
                                 line: 1,
                                 fragment: "\\{string}",
-                                extra: ()
-                            }
+                                extra: (),
+                            },
                         ),
-                        Whitespace,
-                        Text (
+                        Whitespaces(
+                            LocatedSpan {
+                                offset: 32,
+                                line: 1,
+                                fragment: " ",
+                                extra: (),
+                            },
+                        ),
+                        Text(
                             LocatedSpan {
                                 offset: 33,
                                 line: 1,
                                 fragment: "mice",
-                                extra: ()
-                            }
-                        )
-                    ]
+                                extra: (),
+                            },
+                        ),
+                    ],
                 )"#,
             );
         }
@@ -2072,40 +2141,40 @@ mod spec {
         #[test]
         fn matches_doubly_escaped_slash() {
             let ast = format!(
-                "{:?}",
+                "{:#?}",
                 unwrap_parser(expression(Spanned::new("12\\\\/2020")))
             );
             eq(
                 ast,
-                r#"Expression (
+                r#"Expression(
                     [
-                        Alternation (
-                            Alternation (
+                        Alternation(
+                            Alternation(
                                 [
                                     [
-                                        Text (
+                                        Text(
                                             LocatedSpan {
                                                 offset: 0,
                                                 line: 1,
                                                 fragment: "12\\\\",
-                                                extra: ()
-                                            }
-                                        )
+                                                extra: (),
+                                            },
+                                        ),
                                     ],
                                     [
-                                        Text (
+                                        Text(
                                             LocatedSpan {
                                                 offset: 5,
                                                 line: 1,
                                                 fragment: "2020",
-                                                extra: ()
-                                            }
-                                        )
-                                    ]
-                                ]
-                            )
-                        )
-                    ]
+                                                extra: (),
+                                            },
+                                        ),
+                                    ],
+                                ],
+                            ),
+                        ),
+                    ],
                 )"#,
             );
         }
@@ -2113,61 +2182,68 @@ mod spec {
         #[test]
         fn matches_optional_before_alternation() {
             let ast = format!(
-                "{:?}",
+                "{:#?}",
                 unwrap_parser(expression(Spanned::new(
                     "three (brown )mice/rats"
                 )))
             );
             eq(
                 ast,
-                r#"Expression (
+                r#"Expression(
                     [
-                        Text (
+                        Text(
                             LocatedSpan {
                                 offset: 0,
                                 line: 1,
                                 fragment: "three",
-                                extra: ()
-                            }
+                                extra: (),
+                            },
                         ),
-                        Whitespace,
-                        Alternation (
-                            Alternation (
+                        Whitespaces(
+                            LocatedSpan {
+                                offset: 5,
+                                line: 1,
+                                fragment: " ",
+                                extra: (),
+                            },
+                        ),
+                        Alternation(
+                            Alternation(
                                 [
                                     [
-                                        Optional (
-                                            Optional (
+                                        Optional(
+                                            Optional(
                                                 LocatedSpan {
                                                     offset: 7,
                                                     line: 1,
-                                                    fragment: "brown",
-                                                    extra: ()
-                                                }
-                                            )
+                                                    fragment: "brown ",
+                                                    extra: (),
+                                                },
+                                            ),
                                         ),
-                                        Text (
+                                        Text(
                                             LocatedSpan {
                                                 offset: 14,
                                                 line: 1,
                                                 fragment: "mice",
-                                                extra: ()
-                                            }
-                                        )
+                                                extra: (),
+                                            },
+                                        ),
                                     ],
                                     [
-                                        Text (
+                                        Text(
                                             LocatedSpan {
                                                 offset: 19,
                                                 line: 1,
                                                 fragment: "rats",
-                                                extra: ()
-                                            }
-                                        )
-                                    ]
-                                ]
-                            )
-                        )
-                    ]
+                                                extra: (),
+                                            },
+                                        ),
+                                    ],
+                                ],
+                            ),
+                        ),
+                    ],
                 )"#,
             );
         }
@@ -2175,75 +2251,92 @@ mod spec {
         #[test]
         fn matches_optional_in_alternation() {
             let ast = format!(
-                "{:?}",
+                "{:#?}",
                 unwrap_parser(expression(Spanned::new(
                     "{int} rat(s)/mouse/mice"
                 )))
             );
             eq(
                 ast,
-                r#"Expression (
+                r#"Expression(
                     [
-                        Parameter (
-                            Parameter (
+                        Parameter(
+                            Parameter(
                                 LocatedSpan {
                                     offset: 1,
                                     line: 1,
                                     fragment: "int",
-                                    extra: ()
-                                }
-                            )
+                                    extra: (),
+                                },
+                            ),
                         ),
-                        Whitespace,
-                        Alternation (
-                            Alternation (
+                        Whitespaces(
+                            LocatedSpan {
+                                offset: 5,
+                                line: 1,
+                                fragment: " ",
+                                extra: (),
+                            },
+                        ),
+                        Alternation(
+                            Alternation(
                                 [
                                     [
-                                        Text (
+                                        Text(
                                             LocatedSpan {
                                                 offset: 6,
                                                 line: 1,
                                                 fragment: "rat",
-                                                extra: ()
-                                            }
+                                                extra: (),
+                                            },
                                         ),
-                                        Optional (
-                                            Optional (
+                                        Optional(
+                                            Optional(
                                                 LocatedSpan {
                                                     offset: 10,
                                                     line: 1,
                                                     fragment: "s",
-                                                    extra: ()
-                                                }
-                                            )
-                                        )
+                                                    extra: (),
+                                                },
+                                            ),
+                                        ),
                                     ],
                                     [
-                                        Text (
+                                        Text(
                                             LocatedSpan {
                                                 offset: 13,
                                                 line: 1,
                                                 fragment: "mouse",
-                                                extra: ()
-                                            }
-                                        )
+                                                extra: (),
+                                            },
+                                        ),
                                     ],
                                     [
-                                        Text (
+                                        Text(
                                             LocatedSpan {
                                                 offset: 19,
                                                 line: 1,
                                                 fragment: "mice",
-                                                extra: ()
-                                            }
-                                        )
-                                    ]
-                                ]
-                            )
-                        )
-                    ]
+                                                extra: (),
+                                            },
+                                        ),
+                                    ],
+                                ],
+                            ),
+                        ),
+                    ],
                 )"#,
             );
+        }
+
+        #[test]
+        fn err_on_escaped_end_of_line() {
+            match expression(Spanned::new("\\")).unwrap_err() {
+                Err::Failure(Error::EscapedEndOfLine(_)) => {}
+                e @ (Err::Incomplete(_) | Err::Error(_) | Err::Failure(_)) => {
+                    panic!("wrong err: {}", e)
+                }
+            }
         }
 
         #[test]

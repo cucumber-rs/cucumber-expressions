@@ -41,7 +41,7 @@ where
 /// 2. If `normal` matched empty sequence and then `escapable` didn't match
 ///    anything, returns empty sequence;
 /// 3. Errors with [`ErrorKind::Escaped`] if `control_char` was followed by a
-///    non-`escapable` `Input`.
+///    non-`escapable` `Input` or end of line.
 ///
 /// [`escaped()`]: nom::bytes::complete::escaped()
 pub(crate) fn escaped0<'a, Input: 'a, Error, F, G, O1, O2>(
@@ -277,7 +277,7 @@ mod escaped0_spec {
     }
 
     #[test]
-    fn errors_on_control_char() {
+    fn errors_on_ending_with_control_char() {
         assert_eq!(
             get_result("\\"),
             (

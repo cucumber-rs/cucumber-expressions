@@ -8,13 +8,13 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-//! [Cucumber Expressions][1] [AST][2] definitions.
+//! [Cucumber Expressions][1] [AST].
 //!
-//! See details in the [grammar spec][3].
+//! See details in the [grammar spec][0].
 //!
+//! [0]: crate#grammar
 //! [1]: https://github.com/cucumber/cucumber-expressions#readme
-//! [2]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
-//! [3]: crate#grammar
+//! [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 
 use derive_more::{AsRef, Deref, DerefMut};
 use nom::{error::ErrorKind, Err, InputLength};
@@ -22,14 +22,14 @@ use nom_locate::LocatedSpan;
 
 use crate::parse;
 
-/// [`str`] along with its location information in the original string.
+/// [`str`] along with its location information in the original input.
 pub type Spanned<'s> = LocatedSpan<&'s str>;
 
-/// Top-level [`cucumber-expression`][1].
+/// Top-level `expression` defined in the [grammar spec][0].
 ///
 /// See [`parse::expression()`] for the detailed grammar and examples.
 ///
-/// [1]: crate#grammar
+/// [0]: crate#grammar
 #[derive(AsRef, Clone, Debug, Deref, DerefMut, Eq, PartialEq)]
 pub struct Expression<Input>(pub Vec<SingleExpression<Input>>);
 
@@ -63,50 +63,58 @@ impl<'s> Expression<Spanned<'s>> {
     }
 }
 
-/// Single entry of a [`cucumber-expression`][1].
+/// `single-expression` defined in the [grammar spec][0], representing a single
+/// entry of an [`Expression`].
 ///
 /// See [`parse::single_expression()`] for the detailed grammar and examples.
 ///
-/// [1]: crate#grammar
+/// [0]: crate#grammar
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum SingleExpression<Input> {
-    /// [`alternation`][1] expression.
+    /// [`alternation`][0] expression.
     ///
-    /// [1]: crate#grammar
+    /// [0]: crate#grammar
     Alternation(Alternation<Input>),
 
-    /// [`optional`][1] expression.
+    /// [`optional`][0] expression.
     ///
-    /// [1]: crate#grammar
+    /// [0]: crate#grammar
     Optional(Optional<Input>),
 
-    /// [`parameter`][1] expression.
+    /// [`parameter`][0] expression.
     ///
-    /// [1]: crate#grammar
+    /// [0]: crate#grammar
     Parameter(Parameter<Input>),
 
     /// Text without whitespaces.
     Text(Input),
 
     /// Whitespaces are treated as a special case to avoid placing every `text`
-    /// character in separate [AST] node, as described in [grammar spec].
+    /// character in a separate [AST] node, as described in the
+    /// [grammar spec][0].
     ///
+    /// [0]: crate#grammar
     /// [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
-    /// [grammar spec]: crate#grammar
     Whitespaces(Input),
 }
 
-/// Allows to match one of [`SingleAlternation`]s.
+/// `single-alternation` defined in the [grammar spec][0], representing a
+/// building block of an [`Alternation`].
 ///
-/// See [`parse::alternation()`] for detailed syntax and examples.
+/// [0]: crate#grammar
+pub type SingleAlternation<Input> = Vec<Alternative<Input>>;
+
+/// `alternation` defined in the [grammar spec][0], allowing to match one of
+/// [`SingleAlternation`]s.
+///
+/// See [`parse::alternation()`] for the detailed grammar and examples.
+///
+/// [0]: crate#grammar
 #[derive(AsRef, Clone, Debug, Deref, DerefMut, Eq, PartialEq)]
 pub struct Alternation<Input>(pub Vec<SingleAlternation<Input>>);
 
-/// Building block of an [`Alternation`].
-pub type SingleAlternation<Input> = Vec<Alternative<Input>>;
-
 impl<Input: InputLength> Alternation<Input> {
-    /// Returns length of capture from `Input`.
+    /// Returns length of this [`Alternation`]'s span in the `Input`.
     pub(crate) fn span_len(&self) -> usize {
         self.0
             .iter()
@@ -120,26 +128,22 @@ impl<Input: InputLength> Alternation<Input> {
             - 1
     }
 
-    /// Indicates whether one of [`SingleAlternation`]s consists only from
+    /// Indicates whether any of [`SingleAlternation`]s consists only from
     /// [`Optional`]s.
     pub(crate) fn contains_only_optional(&self) -> bool {
-        for single_alt in &**self {
-            if single_alt
+        (**self).iter().any(|single_alt| {
+            single_alt
                 .iter()
                 .all(|alt| matches!(alt, Alternative::Optional(_)))
-            {
-                return true;
-            }
-        }
-        false
+        })
     }
 }
 
-/// [`alternative`][1] expression.
+/// `alternative` defined in the [grammar spec][0].
 ///
 /// See [`parse::alternative()`] for the detailed grammar and examples.
 ///
-/// [1]: crate#grammar
+/// [0]: crate#grammar
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Alternative<Input> {
     /// [`optional`][1] expression.
@@ -151,14 +155,20 @@ pub enum Alternative<Input> {
     Text(Input),
 }
 
-/// Allows to match optional `Input`.
+/// `optional` defined in the [grammar spec][0], allowing to match an optional
+/// `Input`.
 ///
-/// See [`parse::optional()`] for detailed syntax and examples.
+/// See [`parse::optional()`] for the detailed grammar and examples.
+///
+/// [0]: crate#grammar
 #[derive(AsRef, Clone, Copy, Debug, Deref, DerefMut, Eq, PartialEq)]
 pub struct Optional<Input>(pub Input);
 
-/// Allows to match some special `Input` descried by a [`Parameter`] name.
+/// `parameter` defined in the [grammar spec][0], allowing to match some special
+/// `Input` described by a [`Parameter`] name.
 ///
-/// See [`parse::parameter()`] for detailed syntax and examples.
+/// See [`parse::parameter()`] for the detailed grammar and examples.
+///
+/// [0]: crate#grammar
 #[derive(AsRef, Clone, Copy, Debug, Deref, DerefMut, Eq, PartialEq)]
 pub struct Parameter<Input>(pub Input);

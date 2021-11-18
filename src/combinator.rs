@@ -18,29 +18,32 @@ use nom::{
     InputTakeAtPosition, Offset, Parser, Slice,
 };
 
-/// Applies `map` to `parser`s [`IResult`] in case it errored.
+/// Applies the given `map` function to the `parser`'s [`IResult`] in case it
+/// represents an error.
 ///
-/// Can be used to harden [`Error`] to [`Failure`].
+/// Can be used to harden an [`Error`] into a [`Failure`].
 ///
 /// [`Error`]: nom::Err::Error
 /// [`Failure`]: nom::Err::Failure
 /// [`verify()`]: nom::combinator::verify()
 pub(crate) fn map_err<I, O1, E: ParseError<I>, F, G>(
     mut parser: F,
-    map: G,
+    mut map: G,
 ) -> impl FnMut(I) -> IResult<I, O1, E>
 where
     F: Parser<I, O1, E>,
-    G: Fn(Err<E>) -> Err<E>,
+    G: FnMut(Err<E>) -> Err<E>,
 {
-    move |input: I| parser.parse(input).map_err(&map)
+    move |input: I| parser.parse(input).map_err(&mut map)
 }
 
+/// Matches a byte string with escaped characters.
+///
 /// Differences from [`escaped()`]:
-/// 1. If `normal` matched empty sequence, tries to matched escaped;
+/// 1. If `normal` matched empty sequence, tries to match escaped;
 /// 2. If `normal` matched empty sequence and then `escapable` didn't match
-///    anything, returns empty sequence;
-/// 3. Errors with [`ErrorKind::Escaped`] if `control_char` was followed by a
+///    anything, returns an empty sequence;
+/// 3. Errors with [`ErrorKind::Escaped`] if a `control_char` was followed by a
 ///    non-`escapable` `Input` or end of line.
 ///
 /// [`escaped()`]: nom::bytes::complete::escaped()
@@ -146,7 +149,7 @@ mod escaped0_spec {
 
     /// Type used to compare behaviour of [`escaped`] and [`escaped0`].
     ///
-    /// Tuple is constructed from following parsers results:
+    /// Tuple is constructed from the following parsers results:
     /// - [`escaped0`]`(`[`digit0`]`, '\\', `[`one_of`]`(r#""n\"#))`
     /// - [`escaped0`]`(`[`digit1`]`, '\\', `[`one_of`]`(r#""n\"#))`
     /// - [`escaped`]`(`[`digit0`]`, '\\', `[`one_of`]`(r#""n\"#))`
@@ -158,7 +161,7 @@ mod escaped0_spec {
         IResult<&'s str, &'s str>,
     );
 
-    /// Produces [`TestResult`] from `input`.
+    /// Produces a [`TestResult`] from the given `input`.
     fn get_result(input: &str) -> TestResult<'_> {
         (
             escaped0(digit0, '\\', one_of(r#""n\"#))(input),
@@ -261,16 +264,16 @@ mod escaped0_spec {
             (
                 Err(Err::Error(Error {
                     input: r#"\r"#,
-                    code: ErrorKind::Escaped
+                    code: ErrorKind::Escaped,
                 })),
                 Err(Err::Error(Error {
                     input: r#"\r"#,
-                    code: ErrorKind::Escaped
+                    code: ErrorKind::Escaped,
                 })),
                 Ok((r#"\n\r"#, "")),
                 Err(Err::Error(Error {
                     input: r#"r"#,
-                    code: ErrorKind::OneOf
+                    code: ErrorKind::OneOf,
                 })),
             ),
         );
@@ -283,17 +286,17 @@ mod escaped0_spec {
             (
                 Err(Err::Error(Error {
                     input: "\\",
-                    code: ErrorKind::Escaped
+                    code: ErrorKind::Escaped,
                 })),
                 Err(Err::Error(Error {
                     input: "\\",
-                    code: ErrorKind::Escaped
+                    code: ErrorKind::Escaped,
                 })),
                 Ok(("\\", "")),
                 Err(Err::Error(Error {
                     input: "\\",
-                    code: ErrorKind::Escaped
-                }))
+                    code: ErrorKind::Escaped,
+                })),
             ),
         );
     }

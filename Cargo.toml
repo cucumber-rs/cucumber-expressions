@@ -22,5 +22,5 @@ derive_more = { version = "0.99.16", features = ["as_ref", "deref", "deref_mut",
 nom = "7.0"
 nom_locate = "4.0"
 
-# TODO: remove once https://github.com/JelteF/derive_more/pull/175 is merged.
+# TODO: Remove once `derive_more` 0.99.17 is released.
 syn = "1.0.81"

@@ -17,9 +17,9 @@ This crate provides [AST] and parser of [Cucumber Expressions].
 
 ## Grammar
 
-This implementation follows context-free grammar, [which isn't yet merged][1]. Original grammar is impossible to follow while creating performant parser, as it consists errors and describes not `Cucumber Expressions`, but some superset language and context-sensitive. In case you've found some inconsistencies between implementations in other languages, please file an issue! 
+This implementation follows a context-free grammar, [which isn't yet merged][1]. Original grammar is impossible to follow while creating a performant parser, as it consists errors and describes not an exact [Cucumber Expressions] language, but rather some superset language, while being also context-sensitive. In case you've found some inconsistencies between this implementation and the ones in other languages, please file an issue! 
 
-[EBNF] spec
+[EBNF] spec of the current context-free grammar implemented by this crate:
 ```ebnf
 expression              = single-expression*
 
@@ -63,7 +63,8 @@ at your option.
 
 
 
-[1]: https://github.com/cucumber/cucumber-expressions/issues/41
 [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 [Cucumber Expressions]: https://github.com/cucumber/cucumber-expressions#readme
 [EBNF]: https://en.wikipedia.org/wiki/Extended_Backus–Naur_form
+
+[1]: https://github.com/cucumber/cucumber-expressions/issues/41

@@ -100,7 +100,7 @@ pub mod ast;
 mod combinator;
 pub mod parse;
 
-// TODO: remove once https://github.com/JelteF/derive_more/pull/175 is merged.
+// TODO: Remove once `derive_more` 0.99.17 is released.
 use syn as _;
 
 #[doc(inline)]

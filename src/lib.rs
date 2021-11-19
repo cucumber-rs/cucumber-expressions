@@ -95,10 +95,11 @@
     unused_results,
     variant_size_differences
 )]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 pub mod ast;
 mod combinator;
-#[cfg(feature = "expand-into-regex")]
+#[cfg(feature = "into-regex")]
 pub mod expand;
 pub mod parse;
 
@@ -110,7 +111,7 @@ pub use self::ast::{
     Alternation, Alternative, Expression, Optional, Parameter,
     SingleAlternation, SingleExpression, Spanned,
 };
-#[cfg(feature = "expand-into-regex")]
+#[cfg(feature = "into-regex")]
 #[doc(inline)]
 pub use self::expand::{
     ExpansionError as Error, IntoRegexCharIter, ParametersProvider,

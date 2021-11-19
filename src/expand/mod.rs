@@ -8,12 +8,11 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-//! [Cucumber Expressions][0] [AST] into [`Regex`] transformation
-//! definitions.
+//! [Cucumber Expressions][0] [AST] into [`Regex`] transformation.
 //!
+//! [`Regex`]: regex::Regex
 //! [0]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 //! [AST]: https://github.com/cucumber/cucumber-expressions#readme
-//! [`Regex`]: regex::Regex
 
 pub mod with_parameters;
 
@@ -31,8 +30,7 @@ use crate::{
 
 pub use with_parameters::{ParametersProvider, WithParameters};
 
-// Related to `expand-into-regex` feature.
-#[allow(clippy::multiple_inherent_impl)]
+#[allow(clippy::multiple_inherent_impl)] // because of `into-regex` feature
 impl<'s> Expression<Spanned<'s>> {
     /// Transforms `Input` into [`Regex`].
     ///
@@ -41,13 +39,13 @@ impl<'s> Expression<Spanned<'s>> {
     /// Text between curly braces reference a *parameter type*. Cucumber
     /// comes with the following built-in parameter types:
     ///
-    /// | Parameter Type  | Description |
-    /// | --------------- | ----------- |
-    /// | `{int}`         | Matches integers |
-    /// | `{float}`       | Matches floats |
-    /// | `{word}`        | Matches words without whitespace |
+    /// | Parameter Type  | Description                                    |
+    /// | --------------- | ---------------------------------------------- |
+    /// | `{int}`         | Matches integers                               |
+    /// | `{float}`       | Matches floats                                 |
+    /// | `{word}`        | Matches words without whitespace               |
     /// | `{string}`      | Matches single-quoted or double-quoted strings |
-    /// | `{}` anonymous  | Matches anything (`/.*/`) |
+    /// | `{}` anonymous  | Matches anything (`/.*/`)                      |
     ///
     /// To expand [`Expression`] with custom parameter types in addition to the
     /// built-in ones, see [`Expression::regex_with_parameters()`].
@@ -67,7 +65,7 @@ impl<'s> Expression<Spanned<'s>> {
     }
 
     /// Transforms `Input` into [`Regex`] with `Parameters` in addition to
-    /// the [default ones][0]
+    /// [default ones][0].
     ///
     /// # Errors
     ///
@@ -104,8 +102,8 @@ impl<'s> Expression<Spanned<'s>> {
     }
 }
 
-/// Possible errors while transforming `Input` representing
-/// [Cucumber Expression][0] into [`Regex`]
+/// Possible errors while transforming `Input` representing a
+/// [Cucumber Expression][0] into a [`Regex`].
 ///
 /// [0]: https://github.com/cucumber/cucumber-expressions#readme
 #[derive(Clone, Debug, Display, Error, From)]
@@ -137,17 +135,17 @@ where
     pub not_found: Input,
 }
 
-/// Trait for converting [Cucumber Expressions][0] [AST] elements into
-/// [`Iterator`]`<`[`Item`]` = `[`char`]`>` for transforming into [`Regex`].
+/// Transforming a [Cucumber Expressions][0] [AST] element into a [`Regex`] by
+/// producing a [`char`]s [`Iterator`].
 ///
 /// [0]: https://github.com/cucumber/cucumber-expressions#readme
 /// [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
-/// [`Item`]: Iterator::Item
 pub trait IntoRegexCharIter<Input: fmt::Display> {
-    /// [`Iterator`] for transforming into [`Regex`].
+    /// [`Iterator`] for transforming into a [`Regex`].
     type Iter: Iterator<Item = Result<char, UnknownParameterError<Input>>>;
 
-    /// Returns [`Iterator`] of [`char`]s for transforming into [`Regex`].
+    /// Consumes this [AST] element returning an [`Iterator`] over [`char`]s
+    /// transformable into a [`Regex`].
     fn into_regex_char_iter(self) -> Self::Iter;
 }
 
@@ -161,13 +159,14 @@ where
     fn into_regex_char_iter(self) -> Self::Iter {
         let into_regex_char_iter: fn(_) -> _ =
             IntoRegexCharIter::into_regex_char_iter;
+
         iter::once(Ok('^'))
             .chain(self.0.into_iter().flat_map(into_regex_char_iter))
             .chain(iter::once(Ok('$')))
     }
 }
 
-/// [`IntoRegexCharIter::Iter`] for [`Expression`].
+/// [`IntoRegexCharIter::Iter`] for an [`Expression`].
 type ExpressionIter<Input> = iter::Chain<
     iter::Chain<
         iter::Once<Result<char, UnknownParameterError<Input>>>,
@@ -207,7 +206,7 @@ where
     }
 }
 
-/// [`IntoRegexCharIter::Iter`] for [`SingleExpression`].
+/// [`IntoRegexCharIter::Iter`] for a [`SingleExpression`].
 type SingleExpressionIter<Input> = Either<
     <Alternation<Input> as IntoRegexCharIter<Input>>::Iter,
     Either<
@@ -253,7 +252,7 @@ where
     }
 }
 
-/// [`IntoRegexCharIter::Iter`] for [`Alternation`].
+/// [`IntoRegexCharIter::Iter`] for an [`Alternation`].
 type AlternationIter<I> = iter::Chain<
     iter::Chain<
         iter::Map<str::Chars<'static>, MapOkChar<I>>,
@@ -268,7 +267,7 @@ type AlternationIter<I> = iter::Chain<
     iter::Once<Result<char, UnknownParameterError<I>>>,
 >;
 
-/// Inner type for [`AlternationIter`].
+/// Inner type of an [`AlternationIter`].
 type AlternationIterInner<I> = iter::Chain<
     iter::FlatMap<
         vec::IntoIter<Alternative<I>>,
@@ -299,7 +298,7 @@ where
     }
 }
 
-/// [`IntoRegexCharIter::Iter`] for [`Alternative`].
+/// [`IntoRegexCharIter::Iter`] for an [`Alternative`].
 type AlternativeIter<Input> = Either<
     <Optional<Input> as IntoRegexCharIter<Input>>::Iter,
     iter::Map<
@@ -331,7 +330,7 @@ where
     }
 }
 
-/// [`IntoRegexCharIter::Iter`] for [`Optional`].
+/// [`IntoRegexCharIter::Iter`] for an [`Optional`].
 type OptionalIter<Input> = iter::Map<
     iter::Chain<
         iter::Chain<
@@ -348,7 +347,7 @@ type OptionalIter<Input> = iter::Map<
     MapOkChar<Input>,
 >;
 
-/// Alias for [`Ok`].
+/// Function pointer describing [`Ok`].
 type MapOkChar<Input> = fn(char) -> Result<char, UnknownParameterError<Input>>;
 
 impl<Input> IntoRegexCharIter<Input> for Parameter<Input>
@@ -389,7 +388,7 @@ where
     }
 }
 
-/// [`IntoRegexCharIter::Iter`] for [`Parameter`].
+/// [`IntoRegexCharIter::Iter`] for a [`Parameter`].
 type ParameterIter<Input> = Either<
     iter::Map<
         str::Chars<'static>,
@@ -398,11 +397,11 @@ type ParameterIter<Input> = Either<
     iter::Once<Result<char, UnknownParameterError<Input>>>,
 >;
 
-/// [`Iterator`] for skipping last [`Item`].
+/// [`Iterator`] for skipping a last [`Item`].
 ///
 /// [`Item`]: Iterator::Item
 pub struct SkipLast<Iter: Iterator> {
-    /// Inner [`Iterator`] to skip last [`Item`] from.
+    /// Inner [`Iterator`] to skip the last [`Item`] from.
     ///
     /// [`Item`]: Iterator::Item
     iter: iter::Peekable<Iter>,
@@ -433,7 +432,7 @@ where
 }
 
 impl<Iter: Iterator> SkipLast<Iter> {
-    /// Creates a new [`SkipLast`].
+    /// Creates a new [`SkipLast`] [`Iterator`].
     pub fn new(iter: Iter) -> Self {
         Self {
             iter: iter.peekable(),
@@ -478,7 +477,7 @@ pub struct EscapeForRegex<Iter: Iterator> {
 }
 
 impl<Iter: Iterator> EscapeForRegex<Iter> {
-    /// Creates a new [`EscapeForRegex`].
+    /// Creates a new [`EscapeForRegex`] [`Iterator`].
     pub fn new(iter: Iter) -> Self {
         Self {
             iter: iter.peekable(),
@@ -496,8 +495,8 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         let should_be_escaped = |c| "^$[]()\\{}.|?*+".contains(c);
 
-        if let Some(c) = self.was_escaped.take() {
-            return Some(c);
+        if self.was_escaped.is_some() {
+            return self.was_escaped
         }
 
         loop {

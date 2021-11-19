@@ -12,13 +12,15 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 ### Added
 
 - [Cucumber Expressions] AST and parser. ([#1])
-- [Cucumber Expressions] AST into `Regex` expansion. ([#2])
+- Expansion of [Cucumber Expressions] AST into [`Regex`] behind `into-regex` feature flag. ([#2])
 
 [#1]: /../../pull/1
 [#2]: /../../pull/2
 
 
 
+
+[`Regex`]: https://docs.rs/regex
 
 [Cucumber Expressions]: https://github.com/cucumber/cucumber-expressions#readme
 [Semantic Versioning 2.0.0]: https://semver.org

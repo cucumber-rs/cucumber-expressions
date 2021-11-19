@@ -63,7 +63,7 @@ name-to-escape          = '{' | '}' | '(' | '/' | '\'
 
 ## Cargo features
 
-- `expand-into-regex` (default): Enables expansion into [Regex].
+- `into-regex`: Enables expansion into [`Regex`].
 
 
 
@@ -80,9 +80,10 @@ at your option.
 
 
 
+[`Regex`]: https://docs.rs/regex
+
 [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 [Cucumber Expressions]: https://github.com/cucumber/cucumber-expressions#readme
 [EBNF]: https://en.wikipedia.org/wiki/Extended_Backus–Naur_form
-[Regex]: https://docs.rs/regex/
 
 [1]: https://github.com/cucumber/cucumber-expressions/issues/41

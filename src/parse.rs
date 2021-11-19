@@ -482,7 +482,7 @@ where
 ///                            | optional
 ///                            | parameter
 ///                            | text-without-whitespace+
-///                            | whitespace
+///                            | whitespace+
 /// text-without-whitespace = (- (text-to-escape | whitespace))
 ///                            | ('\', text-to-escape)
 /// text-to-escape          = '(' | '{' | '/' | '\'

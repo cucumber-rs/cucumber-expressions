@@ -8,11 +8,11 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-//! [Cucumber Expressions][1] [AST][2] with custom [`Parameter`]s into [`Regex`]
+//! [Cucumber Expressions][0] [AST] with custom [`Parameter`]s into [`Regex`]
 //! transformation definitions.
 //!
-//! [1]: https://github.com/cucumber/cucumber-expressions#readme
-//! [2]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
+//! [0]: https://github.com/cucumber/cucumber-expressions#readme
+//! [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 //! [`Regex`]: regex::Regex
 
 use std::{collections::HashMap, fmt::Display, iter, vec};
@@ -27,21 +27,21 @@ use super::{
     UnknownParameterError,
 };
 
-/// Struct for pairing [Cucumber Expressions][1] [AST][2] `Item` with custom
+/// Struct for pairing [Cucumber Expressions][0] [AST] `Item` with custom
 /// `Parameters`.
 ///
 /// Every [`Parameter`] should be represented by single [`Regex`] capturing
 /// group.
 ///
-/// [1]: https://github.com/cucumber/cucumber-expressions#readme
-/// [2]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
+/// [0]: https://github.com/cucumber/cucumber-expressions#readme
+/// [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 /// [`Regex`]: regex::Regex
 #[derive(Clone, Copy, Debug)]
 pub struct WithParameters<Item, Parameters> {
-    /// [Cucumber Expressions][1] [AST][2] `Item`.
+    /// [Cucumber Expressions][0] [AST] `Item`.
     ///
-    /// [1]: https://github.com/cucumber/cucumber-expressions#readme
-    /// [2]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
+    /// [0]: https://github.com/cucumber/cucumber-expressions#readme
+    /// [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
     pub item: Item,
 
     /// Custom `Parameters`.
@@ -50,12 +50,18 @@ pub struct WithParameters<Item, Parameters> {
 
 /// Provider for custom [`Parameter`]s.
 pub trait ParametersProvider<Input> {
+    /// `<`[`Value`]` as `[`InputIter`]`>::`[`Item`].
+    ///
+    /// [`Item`]: InputIter::Item
+    /// [`Value`]: Self::Value
+    type Item: AsChar;
+
     /// Returned value, that will be inserted into [`Regex`].
     ///
     /// Should be represented by single [`Regex`] capturing group.
     ///
     /// [`Regex`]: regex::Regex
-    type Value;
+    type Value: InputIter<Item = Self::Item>;
 
     /// Returns [`Value`] corresponding to the `input`, if present.
     ///
@@ -71,6 +77,7 @@ where
     Key: AsRef<str>,
     Value: AsRef<str>,
 {
+    type Item = char;
     type Value = &'p str;
 
     fn get(&self, input: &Input) -> Option<Self::Value> {
@@ -83,9 +90,6 @@ where
     }
 }
 
-// false positive:
-// TODO: remove once fixed: https://github.com/rust-lang/rust-clippy/issues/7360
-#[allow(clippy::type_repetition_in_bounds)]
 impl<Input, Pars> IntoRegexCharIter<Input>
     for WithParameters<Expression<Input>, Pars>
 where
@@ -93,7 +97,6 @@ where
     <Input as InputIter>::Item: AsChar,
     Pars: Clone + ParametersProvider<Input>,
     <Pars as ParametersProvider<Input>>::Value: InputIter,
-    <<Pars as ParametersProvider<Input>>::Value as InputIter>::Item: AsChar,
 {
     type Iter = ExpressionWithParsIter<Input, Pars>;
 
@@ -135,9 +138,6 @@ type ExpressionWithParsIter<I, P> = iter::Chain<
     iter::Once<Result<char, UnknownParameterError<I>>>,
 >;
 
-// false positive:
-// TODO: remove once fixed: https://github.com/rust-lang/rust-clippy/issues/7360
-#[allow(clippy::type_repetition_in_bounds)]
 impl<Input, Pars> IntoRegexCharIter<Input>
     for WithParameters<SingleExpression<Input>, Pars>
 where
@@ -145,7 +145,6 @@ where
     <Input as InputIter>::Item: AsChar,
     Pars: ParametersProvider<Input>,
     <Pars as ParametersProvider<Input>>::Value: InputIter,
-    <<Pars as ParametersProvider<Input>>::Value as InputIter>::Item: AsChar,
 {
     type Iter = SingleExprWithParsIter<Input, Pars>;
 
@@ -173,16 +172,12 @@ type SingleExprWithParsIter<I, P> = Either<
     SingleExpressionIter<I>,
 >;
 
-// false positive:
-// TODO: remove once fixed: https://github.com/rust-lang/rust-clippy/issues/7360
-#[allow(clippy::type_repetition_in_bounds)]
 impl<Input, P> IntoRegexCharIter<Input> for WithParameters<Parameter<Input>, P>
 where
     Input: Clone + Display + InputIter,
     <Input as InputIter>::Item: AsChar,
     P: ParametersProvider<Input>,
     <P as ParametersProvider<Input>>::Value: InputIter,
-    <<P as ParametersProvider<Input>>::Value as InputIter>::Item: AsChar,
 {
     type Iter = WithParsIter<Input, P>;
 

@@ -86,15 +86,14 @@ pub enum SingleExpression<Input> {
     /// [0]: crate#grammar
     Parameter(Parameter<Input>),
 
-    /// Text without whitespaces.
-    Text(Input),
-
-    /// Whitespaces are treated as a special case to avoid placing every `text`
-    /// character in a separate [AST] node, as described in the
-    /// [grammar spec][0].
+    /// [`text-without-whitespace+`][0] expression.
     ///
     /// [0]: crate#grammar
-    /// [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
+    Text(Input),
+
+    /// [`whitespace+`][0] expression.
+    ///
+    /// [0]: crate#grammar
     Whitespaces(Input),
 }
 

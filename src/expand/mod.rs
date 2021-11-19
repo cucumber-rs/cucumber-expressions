@@ -8,11 +8,11 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-//! [Cucumber Expressions][1] [AST][2] into [`Regex`] transformation
+//! [Cucumber Expressions][0] [AST] into [`Regex`] transformation
 //! definitions.
 //!
-//! [1]: https://github.com/cucumber/cucumber-expressions#readme
-//! [2]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
+//! [0]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
+//! [AST]: https://github.com/cucumber/cucumber-expressions#readme
 //! [`Regex`]: regex::Regex
 
 pub mod with_parameters;
@@ -31,6 +31,8 @@ use crate::{
 
 pub use with_parameters::{ParametersProvider, WithParameters};
 
+// Related to `expand-into-regex` feature.
+#[allow(clippy::multiple_inherent_impl)]
 impl<'s> Expression<Spanned<'s>> {
     /// Transforms `Input` into [`Regex`].
     ///
@@ -65,13 +67,13 @@ impl<'s> Expression<Spanned<'s>> {
     }
 
     /// Transforms `Input` into [`Regex`] with `Parameters` in addition to
-    /// the [default ones][1]
+    /// the [default ones][0]
     ///
     /// # Errors
     ///
     /// See [`Error`] for more details.
     ///
-    /// [1]: Expression#parameter-types
+    /// [0]: Expression#parameter-types
     /// [`Error`]: ExpansionError
     pub fn regex_with_parameters<Input, Parameters>(
         input: &'s Input,
@@ -103,9 +105,9 @@ impl<'s> Expression<Spanned<'s>> {
 }
 
 /// Possible errors while transforming `Input` representing
-/// [Cucumber Expression][1] into [`Regex`]
+/// [Cucumber Expression][0] into [`Regex`]
 ///
-/// [1]: https://github.com/cucumber/cucumber-expressions#readme
+/// [0]: https://github.com/cucumber/cucumber-expressions#readme
 #[derive(Clone, Debug, Display, Error, From)]
 pub enum ExpansionError<Input>
 where
@@ -135,11 +137,11 @@ where
     pub not_found: Input,
 }
 
-/// Trait for converting [Cucumber Expressions][1] [AST][2] elements into
-/// [`Iterator`]'<'[`Item`]` = `[`char`]`>` for transforming into [`Regex`].
+/// Trait for converting [Cucumber Expressions][0] [AST] elements into
+/// [`Iterator`]`<`[`Item`]` = `[`char`]`>` for transforming into [`Regex`].
 ///
-/// [1]: https://github.com/cucumber/cucumber-expressions#readme
-/// [2]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
+/// [0]: https://github.com/cucumber/cucumber-expressions#readme
+/// [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 /// [`Item`]: Iterator::Item
 pub trait IntoRegexCharIter<Input: fmt::Display> {
     /// [`Iterator`] for transforming into [`Regex`].
@@ -198,10 +200,9 @@ where
             Self::Alternation(alt) => Left(alt.into_regex_char_iter()),
             Self::Optional(opt) => Right(Left(opt.into_regex_char_iter())),
             Self::Parameter(p) => Right(Right(Left(p.into_regex_char_iter()))),
-            Self::Text(t) => Right(Right(Right(Left(
+            Self::Text(t) | Self::Whitespaces(t) => Right(Right(Right(
                 EscapeForRegex::new(t.iter_elements().map(as_char)).map(ok),
-            )))),
-            Self::Whitespace => Right(Right(Right(Right(iter::once(Ok(' ')))))),
+            ))),
         }
     }
 }
@@ -213,17 +214,14 @@ type SingleExpressionIter<Input> = Either<
         <Optional<Input> as IntoRegexCharIter<Input>>::Iter,
         Either<
             <Parameter<Input> as IntoRegexCharIter<Input>>::Iter,
-            Either<
-                iter::Map<
-                    EscapeForRegex<
-                        iter::Map<
-                            <Input as InputIter>::IterElem,
-                            fn(<Input as InputIter>::Item) -> char,
-                        >,
+            iter::Map<
+                EscapeForRegex<
+                    iter::Map<
+                        <Input as InputIter>::IterElem,
+                        fn(<Input as InputIter>::Item) -> char,
                     >,
-                    MapOkChar<Input>,
                 >,
-                iter::Once<Result<char, UnknownParameterError<Input>>>,
+                MapOkChar<Input>,
             >,
         >,
     >,
@@ -291,6 +289,7 @@ where
         use Either::{Left, Right};
 
         let as_char: fn(<Input as InputIter>::Item) -> char = AsChar::as_char;
+
         match self {
             Self::Optional(opt) => Left(opt.into_regex_char_iter()),
             Self::Text(text) => Right(
@@ -323,6 +322,7 @@ where
 
     fn into_regex_char_iter(self) -> Self::Iter {
         let as_char: fn(<Input as InputIter>::Item) -> char = AsChar::as_char;
+
         "(?:"
             .chars()
             .chain(EscapeForRegex::new(self.0.iter_elements().map(as_char)))

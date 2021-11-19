@@ -2,7 +2,7 @@
 ===============================
 
 [![Documentation](https://docs.rs/cucumber-expressions/badge.svg)](https://docs.rs/cucumber-expressions)
-[![CI](https://github.com/cucumber-rs/cucumber-expressions/workflows/CI/badge.svg?branch=master "CI")](https://github.com/cucumber-rs/cucumber-expressions/actions?query=workflow%3ACI+branch%3Amaster)
+[![CI](https://github.com/cucumber-rs/cucumber-expressions/workflows/CI/badge.svg?branch=main "CI")](https://github.com/cucumber-rs/cucumber-expressions/actions?query=workflow%3ACI+branch%3Amaster)
 [![Rust 1.56+](https://img.shields.io/badge/rustc-1.56+-lightgray.svg "Rust 1.56+")](https://blog.rust-lang.org/2021/10/21/Rust-1.56.0.html)
 [![Unsafe Forbidden](https://img.shields.io/badge/unsafe-forbidden-success.svg)](https://github.com/rust-secure-code/safety-dance)
 
@@ -37,7 +37,7 @@ single-expression       = alternation
                            | optional
                            | parameter
                            | text-without-whitespace+
-                           | whitespace
+                           | whitespace+
 text-without-whitespace = (- (text-to-escape | whitespace))
                            | ('\', text-to-escape)
 text-to-escape          = '(' | '{' | '/' | '\'
@@ -57,6 +57,13 @@ parameter               = '{', name*, '}'
 name                    = (- name-to-escape) | ('\', name-to-escape)
 name-to-escape          = '{' | '}' | '(' | '/' | '\'
 ```
+
+
+
+
+## Cargo features
+
+- `expand-into-regex` (default): Enables expansion into [Regex].
 
 
 

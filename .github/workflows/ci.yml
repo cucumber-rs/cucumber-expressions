@@ -110,7 +110,7 @@ jobs:
 
       - run: cargo install cargo-fuzz
 
-      - name: Fuzz for 1 munte
+      - name: Fuzz for 1 minute
         run: make cargo.fuzz target=${{ matrix.target }} time=60
 
   msrv:

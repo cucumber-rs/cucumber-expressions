@@ -201,6 +201,7 @@ jobs:
     needs:
       - clippy
       - feature
+      - fuzz
       - msrv
       - rustdoc
       - rustfmt
@@ -246,5 +247,6 @@ jobs:
           profile: minimal
           toolchain: stable
 
-      - name: Publish crate
-        run: cargo publish --token ${{ secrets.CRATESIO_TOKEN }}
+      - name: Publish `cucumber-expressions` crate
+        run: cargo publish -p cucumber-expressions
+                           --token ${{ secrets.CRATESIO_TOKEN }}

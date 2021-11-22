@@ -6,14 +6,14 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 
 
 
-## [0.1.0] · 2021-??-??
+## [0.1.0] · 2021-11-22
 [0.1.0]: /../../tree/v0.1.0
 
 ### Added
 
 - [Cucumber Expressions] AST and parser. ([#1])
 - Expansion of [Cucumber Expressions] AST into [`Regex`] behind `into-regex` feature flag. ([#2])
-- Fuzzzing. ([#3])
+- Fuzzing. ([#3])
 
 [#1]: /../../pull/1
 [#2]: /../../pull/2

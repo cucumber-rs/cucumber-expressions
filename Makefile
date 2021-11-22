@@ -22,10 +22,10 @@ docs: cargo.doc
 fmt: cargo.fmt
 
 
-lint: cargo.lint
-
-
 fuzz: cargo.fuzz
+
+
+lint: cargo.lint
 
 
 test: test.cargo
@@ -47,7 +47,7 @@ cargo.doc:
 ifeq ($(clean),yes)
 	@rm -rf target/doc/
 endif
-	cargo doc --all-features \
+	cargo doc -p cucumber-expressions --all-features \
 		$(if $(call eq,$(private),no),,--document-private-items) \
 		$(if $(call eq,$(open),no),,--open)
 
@@ -58,7 +58,17 @@ endif
 #	make cargo.fmt [check=(no|yes)]
 
 cargo.fmt:
-	cargo +nightly fmt $(if $(call eq,$(check),yes),-- --check,)
+	cargo +nightly fmt --all $(if $(call eq,$(check),yes),-- --check,)
+
+
+# Fuzz Rust sources with cargo-fuzz.
+#
+# Usage:
+#	make cargo.fuzz target=<fuzz-target> [time=<timeout>]
+
+cargo.fuzz:
+	cargo +nightly fuzz run $(target) \
+		$(if $(call eq,$(time),),,-- -max_total_time=$(time))
 
 
 # Lint Rust sources with Clippy.
@@ -67,17 +77,7 @@ cargo.fmt:
 #	make cargo.lint
 
 cargo.lint:
-	cargo clippy --all-features -- -D warnings
-
-
-# Fuzz Rust sources with cargo-fuzz.
-#
-# Usage:
-#	make cargo.fuzz target=<target-name> [time=<timeout>]
-
-cargo.fuzz:
-	cargo +nightly fuzz run $(target) \
-		$(if $(call eq,$(time),),,-- -max_total_time=$(time))
+	cargo clippy -p cucumber-expressions --all-features -- -D warnings
 
 
 cargo.test: test.cargo
@@ -95,7 +95,7 @@ cargo.test: test.cargo
 #	make test.cargo
 
 test.cargo:
-	cargo test --all-features
+	cargo test -p cucumber-expressions --all-features
 
 
 
@@ -104,6 +104,6 @@ test.cargo:
 # .PHONY section #
 ##################
 
-.PHONY: docs fmt lint test \
-        cargo.doc cargo.fmt cargo.lint cargo.test \
+.PHONY: docs fmt fuzz lint test \
+        cargo.doc cargo.fmt cargo.fuzz cargo.lint cargo.test \
         test.cargo

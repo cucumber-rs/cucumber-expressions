@@ -71,7 +71,7 @@ name-to-escape          = '{' | '}' | '(' | '/' | '\'
 
 ## [`Regex`] Production Rules
 
-Follows original [production rules].
+Follows original [production rules][2].
 
 
 

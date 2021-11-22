@@ -36,3 +36,6 @@ regex = { version = "1.5", optional = true }
 
 # TODO: Remove once `derive_more` 0.99.17 is released.
 syn = "1.0.81"
+
+[workspace]
+members = ["fuzz"]

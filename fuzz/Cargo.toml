@@ -1,0 +1,49 @@
+[package]
+name = "cucumber-expressions-fuzz"
+version = "0.0.0"
+edition = "2021"
+rust-version = "1.56"
+description = "Fuzz testing for `cucumber-expressions` crate."
+license = "MIT OR Apache-2.0"
+authors = [
+    "Ilya Solovyiov <ilya.solovyiov@gmail.com>",
+    "Kai Ren <tyranron@gmail.com>",
+]
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+cucumber-expressions = { path = "..", features = ["into-regex"] }
+libfuzzer-sys = "0.4"
+
+[[bin]]
+name = "expression"
+path = "fuzz_targets/expression.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "parameter"
+path = "fuzz_targets/parameter.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "optional"
+path = "fuzz_targets/optional.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "alternation"
+path = "fuzz_targets/alternation.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "into-regex"
+path = "fuzz_targets/into_regex.rs"
+test = false
+doc = false

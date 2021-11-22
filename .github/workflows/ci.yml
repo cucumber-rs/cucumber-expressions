@@ -168,7 +168,7 @@ jobs:
         run: cargo install cargo-fuzz
 
       - name: Fuzz for 30 seconds
-        run: make fuzz target=${{ matrix.fuzz-target }}
+        run: make fuzz target=${{ matrix.fuzz-target }} time=30
 
 
 

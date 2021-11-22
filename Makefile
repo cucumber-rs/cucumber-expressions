@@ -76,8 +76,8 @@ cargo.lint:
 #	make cargo.fuzz target=<target-name> [time=<timeout>]
 
 cargo.fuzz:
-	cargo fuzz run $(target) -- \
-		-max_total_time=$(if $(call eq,$(time),),30,$(time))
+	cargo fuzz run $(target) \
+		$(if $(call eq,$(time),),,-- -max_total_time=$(time))
 
 
 cargo.test: test.cargo

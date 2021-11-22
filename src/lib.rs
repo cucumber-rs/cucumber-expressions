@@ -111,6 +111,3 @@ pub use self::ast::{
     Alternation, Alternative, Expression, Optional, Parameter,
     SingleAlternation, SingleExpression, Spanned,
 };
-#[cfg(feature = "into-regex")]
-#[doc(inline)]
-pub use self::expand::ExpansionError as Error;

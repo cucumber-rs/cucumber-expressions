@@ -25,6 +25,13 @@ assert_eq!(&caps[1], "42");
 
 
 
+## Cargo features
+
+- `into-regex`: Enables expansion into [`Regex`].
+
+
+
+
 ## Grammar
 
 This implementation follows a context-free grammar, [which isn't yet merged][1]. Original grammar is impossible to follow while creating a performant parser, as it consists errors and describes not an exact [Cucumber Expressions] language, but rather some superset language, while being also context-sensitive. In case you've found some inconsistencies between this implementation and the ones in other languages, please file an issue! 
@@ -62,16 +69,9 @@ name-to-escape          = '{' | '}' | '(' | '/' | '\'
 
 
 
-## Production Rules
+## [`Regex`] Production Rules
 
 Follows original [production rules].
-
-
-
-
-## Cargo features
-
-- `into-regex`: Enables expansion into [`Regex`].
 
 
 
@@ -93,6 +93,6 @@ at your option.
 [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 [Cucumber Expressions]: https://github.com/cucumber/cucumber-expressions#readme
 [EBNF]: https://en.wikipedia.org/wiki/Extended_Backus–Naur_form
-[production rules]: https://github.com/cucumber/cucumber-expressions/blob/main/ARCHITECTURE.md#production-rules
 
 [1]: https://github.com/cucumber/cucumber-expressions/issues/41
+[2]: https://github.com/cucumber/cucumber-expressions/blob/main/ARCHITECTURE.md#production-rules

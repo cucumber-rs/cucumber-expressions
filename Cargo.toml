@@ -17,10 +17,22 @@ categories = ["compilers", "parser-implementations"]
 keywords = ["cucumber", "expression", "expressions", "cucumber-expressions"]
 include = ["/src/", "/LICENSE-*", "/README.md", "/CHANGELOG.md"]
 
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[features]
+# Enables ability to expand AST into regex.
+into-regex = ["either", "regex"]
+
 [dependencies]
-derive_more = { version = "0.99.16", features = ["as_ref", "deref", "deref_mut", "display", "error"], default_features = false }
+derive_more = { version = "0.99.16", features = ["as_ref", "deref", "deref_mut", "display", "error", "from", "into"], default_features = false }
 nom = "7.0"
 nom_locate = "4.0"
+
+# "into-regex" feature dependencies
+either = { version = "1.6", optional = true }
+regex = { version = "1.5", optional = true }
 
 # TODO: Remove once `derive_more` 0.99.17 is released.
 syn = "1.0.81"

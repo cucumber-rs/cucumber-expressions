@@ -95,19 +95,19 @@
     unused_results,
     variant_size_differences
 )]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 
 pub mod ast;
 mod combinator;
+#[cfg(feature = "into-regex")]
+pub mod expand;
 pub mod parse;
 
 // TODO: Remove once `derive_more` 0.99.17 is released.
 use syn as _;
 
 #[doc(inline)]
-pub use self::{
-    ast::{
-        Alternation, Alternative, Expression, Optional, Parameter,
-        SingleAlternation, SingleExpression, Spanned,
-    },
-    parse::Error,
+pub use self::ast::{
+    Alternation, Alternative, Expression, Optional, Parameter,
+    SingleAlternation, SingleExpression, Spanned,
 };

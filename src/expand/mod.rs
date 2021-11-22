@@ -10,11 +10,14 @@
 
 //! [Cucumber Expressions][0] [AST] into [`Regex`] transformation.
 //!
+//! Follows [production rules][1].
+//!
 //! [`Regex`]: regex::Regex
 //! [0]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
+//! [1]: https://git.io/J159T
 //! [AST]: https://github.com/cucumber/cucumber-expressions#readme
 
-pub mod with_parameters;
+pub mod parameters;
 
 use std::{fmt, iter, str, vec};
 
@@ -28,7 +31,9 @@ use crate::{
     SingleAlternation, SingleExpression, Spanned,
 };
 
-pub use with_parameters::{ParametersProvider, WithParameters};
+pub use parameters::{
+    Provider as ParametersProvider, WithCustom as WithCustomParameters,
+};
 
 #[allow(clippy::multiple_inherent_impl)] // because of `into-regex` feature
 impl<'s> Expression<Spanned<'s>> {
@@ -71,6 +76,26 @@ impl<'s> Expression<Spanned<'s>> {
     ///
     /// See [`Error`] for more details.
     ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use std::collections::HashMap;
+    /// #
+    /// # use cucumber_expressions::Expression;
+    /// #
+    /// let parameters = HashMap::from([("color", "[Rr]ed|[Gg]reen|[Bb]lue")]);
+    /// let re = Expression::regex_with_parameters(
+    ///     "{word} has {color} eyes",
+    ///     &parameters,
+    /// )
+    /// .unwrap();
+    ///
+    /// assert_eq!(
+    ///     re.as_str(),
+    ///     "^([^\\s]+) has ([Rr]ed|[Gg]reen|[Bb]lue) eyes$",
+    /// );
+    /// ```
+    ///
     /// [0]: Expression#parameter-types
     /// [`Error`]: ExpansionError
     pub fn regex_with_parameters<Input, Parameters>(
@@ -94,8 +119,8 @@ impl<'s> Expression<Spanned<'s>> {
     pub fn with_parameters<P: ParametersProvider<Spanned<'s>>>(
         self,
         parameters: P,
-    ) -> WithParameters<Self, P> {
-        WithParameters {
+    ) -> WithCustomParameters<Self, P> {
+        WithCustomParameters {
             item: self,
             parameters,
         }
@@ -146,6 +171,8 @@ pub trait IntoRegexCharIter<Input: fmt::Display> {
 
     /// Consumes this [AST] element returning an [`Iterator`] over [`char`]s
     /// transformable into a [`Regex`].
+    ///
+    /// [AST]: https://github.com/cucumber/cucumber-expressions#readme
     fn into_regex_char_iter(self) -> Self::Iter;
 }
 
@@ -166,6 +193,8 @@ where
     }
 }
 
+// TODO: Replace with TAIT, once stabilized:
+//       https://github.com/rust-lang/rust/issues/63063
 /// [`IntoRegexCharIter::Iter`] for an [`Expression`].
 type ExpressionIter<Input> = iter::Chain<
     iter::Chain<
@@ -206,6 +235,8 @@ where
     }
 }
 
+// TODO: Replace with TAIT, once stabilized:
+//       https://github.com/rust-lang/rust/issues/63063
 /// [`IntoRegexCharIter::Iter`] for a [`SingleExpression`].
 type SingleExpressionIter<Input> = Either<
     <Alternation<Input> as IntoRegexCharIter<Input>>::Iter,
@@ -252,6 +283,8 @@ where
     }
 }
 
+// TODO: Replace with TAIT, once stabilized:
+//       https://github.com/rust-lang/rust/issues/63063
 /// [`IntoRegexCharIter::Iter`] for an [`Alternation`].
 type AlternationIter<I> = iter::Chain<
     iter::Chain<
@@ -267,6 +300,8 @@ type AlternationIter<I> = iter::Chain<
     iter::Once<Result<char, UnknownParameterError<I>>>,
 >;
 
+// TODO: Replace with TAIT, once stabilized:
+//       https://github.com/rust-lang/rust/issues/63063
 /// Inner type of an [`AlternationIter`].
 type AlternationIterInner<I> = iter::Chain<
     iter::FlatMap<
@@ -298,6 +333,8 @@ where
     }
 }
 
+// TODO: Replace with TAIT, once stabilized:
+//       https://github.com/rust-lang/rust/issues/63063
 /// [`IntoRegexCharIter::Iter`] for an [`Alternative`].
 type AlternativeIter<Input> = Either<
     <Optional<Input> as IntoRegexCharIter<Input>>::Iter,
@@ -330,6 +367,8 @@ where
     }
 }
 
+// TODO: Replace with TAIT, once stabilized:
+//       https://github.com/rust-lang/rust/issues/63063
 /// [`IntoRegexCharIter::Iter`] for an [`Optional`].
 type OptionalIter<Input> = iter::Map<
     iter::Chain<
@@ -388,6 +427,8 @@ where
     }
 }
 
+// TODO: Replace with TAIT, once stabilized:
+//       https://github.com/rust-lang/rust/issues/63063
 /// [`IntoRegexCharIter::Iter`] for a [`Parameter`].
 type ParameterIter<Input> = Either<
     iter::Map<
@@ -496,7 +537,7 @@ where
         let should_be_escaped = |c| "^$[]()\\{}.|?*+".contains(c);
 
         if self.was_escaped.is_some() {
-            return self.was_escaped
+            return self.was_escaped.take();
         }
 
         loop {
@@ -521,7 +562,7 @@ where
     }
 }
 
-// all tests from https://bit.ly/3C2ONom
+// all tests from https://git.io/J159G
 #[cfg(test)]
 mod spec {
     use super::{ExpansionError as Error, Expression, UnknownParameterError};

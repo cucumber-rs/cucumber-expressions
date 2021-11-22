@@ -1452,7 +1452,7 @@ mod spec {
         }
     }
 
-    // All test examples from: <https://bit.ly/3q6m53v>
+    // All test examples from: <https://git.io/J159C>
     // Naming of test cases is preserved.
     mod expression {
         use super::{

@@ -37,7 +37,7 @@ use super::{
 /// [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 /// [`Regex`]: regex::Regex
 #[derive(Clone, Copy, Debug)]
-pub struct WithParameters<Item, Parameters> {
+pub struct WithCustom<Item, Parameters> {
     /// [Cucumber Expressions][0] [AST] `Item`.
     ///
     /// [0]: https://github.com/cucumber/cucumber-expressions#readme
@@ -49,7 +49,7 @@ pub struct WithParameters<Item, Parameters> {
 }
 
 /// Provider for custom [`Parameter`]s.
-pub trait ParametersProvider<Input> {
+pub trait Provider<Input> {
     /// `<`[`Value`]` as `[`InputIter`]`>::`[`Item`].
     ///
     /// [`Item`]: InputIter::Item
@@ -69,8 +69,7 @@ pub trait ParametersProvider<Input> {
     fn get(&self, input: &Input) -> Option<Self::Value>;
 }
 
-impl<'p, Input, Key, Value, S> ParametersProvider<Input>
-    for &'p HashMap<Key, Value, S>
+impl<'p, Input, Key, Value, S> Provider<Input> for &'p HashMap<Key, Value, S>
 where
     Input: InputIter,
     <Input as InputIter>::Item: AsChar,
@@ -91,18 +90,18 @@ where
 }
 
 impl<Input, Pars> IntoRegexCharIter<Input>
-    for WithParameters<Expression<Input>, Pars>
+    for WithCustom<Expression<Input>, Pars>
 where
     Input: Clone + Display + InputIter,
     <Input as InputIter>::Item: AsChar,
-    Pars: Clone + ParametersProvider<Input>,
-    <Pars as ParametersProvider<Input>>::Value: InputIter,
+    Pars: Clone + Provider<Input>,
+    <Pars as Provider<Input>>::Value: InputIter,
 {
     type Iter = ExpressionWithParsIter<Input, Pars>;
 
     fn into_regex_char_iter(self) -> Self::Iter {
         let add_pars: fn(_) -> _ =
-            |(item, parameters)| WithParameters { item, parameters };
+            |(item, parameters)| WithCustom { item, parameters };
         let into_regex_char_iter: fn(_) -> _ =
             IntoRegexCharIter::into_regex_char_iter;
         iter::once(Ok('^'))
@@ -118,7 +117,9 @@ where
     }
 }
 
-/// [`IntoRegexCharIter::Iter`] for [`WithParameters`]`<`[`Expression`]`>`.
+// TODO: Replace with TAIT, once stabilized:
+//       https://github.com/rust-lang/rust/issues/63063
+/// [`IntoRegexCharIter::Iter`] for [`WithCustom`]`<`[`Expression`]`>`.
 type ExpressionWithParsIter<I, P> = iter::Chain<
     iter::Chain<
         iter::Once<Result<char, UnknownParameterError<I>>>,
@@ -127,11 +128,11 @@ type ExpressionWithParsIter<I, P> = iter::Chain<
                 iter::Zip<vec::IntoIter<SingleExpression<I>>, iter::Repeat<P>>,
                 fn(
                     (SingleExpression<I>, P),
-                ) -> WithParameters<SingleExpression<I>, P>,
+                ) -> WithCustom<SingleExpression<I>, P>,
             >,
             SingleExprWithParsIter<I, P>,
             fn(
-                WithParameters<SingleExpression<I>, P>,
+                WithCustom<SingleExpression<I>, P>,
             ) -> SingleExprWithParsIter<I, P>,
         >,
     >,
@@ -139,12 +140,12 @@ type ExpressionWithParsIter<I, P> = iter::Chain<
 >;
 
 impl<Input, Pars> IntoRegexCharIter<Input>
-    for WithParameters<SingleExpression<Input>, Pars>
+    for WithCustom<SingleExpression<Input>, Pars>
 where
     Input: Clone + Display + InputIter,
     <Input as InputIter>::Item: AsChar,
-    Pars: ParametersProvider<Input>,
-    <Pars as ParametersProvider<Input>>::Value: InputIter,
+    Pars: Provider<Input>,
+    <Pars as Provider<Input>>::Value: InputIter,
 {
     type Iter = SingleExprWithParsIter<Input, Pars>;
 
@@ -153,7 +154,7 @@ where
 
         if let SingleExpression::Parameter(item) = self.item {
             Left(
-                WithParameters {
+                WithCustom {
                     item,
                     parameters: self.parameters,
                 }
@@ -165,19 +166,21 @@ where
     }
 }
 
+// TODO: Replace with TAIT, once stabilized:
+//       https://github.com/rust-lang/rust/issues/63063
 /// [`IntoRegexCharIter::Iter`] for
-/// [`WithParameters`]`<`[`SingleExpression`]`>`.
+/// [`WithCustom`]`<`[`SingleExpression`]`>`.
 type SingleExprWithParsIter<I, P> = Either<
-    <WithParameters<Parameter<I>, P> as IntoRegexCharIter<I>>::Iter,
+    <WithCustom<Parameter<I>, P> as IntoRegexCharIter<I>>::Iter,
     SingleExpressionIter<I>,
 >;
 
-impl<Input, P> IntoRegexCharIter<Input> for WithParameters<Parameter<Input>, P>
+impl<Input, P> IntoRegexCharIter<Input> for WithCustom<Parameter<Input>, P>
 where
     Input: Clone + Display + InputIter,
     <Input as InputIter>::Item: AsChar,
-    P: ParametersProvider<Input>,
-    <P as ParametersProvider<Input>>::Value: InputIter,
+    P: Provider<Input>,
+    <P as Provider<Input>>::Value: InputIter,
 {
     type Iter = WithParsIter<Input, P>;
 
@@ -198,15 +201,17 @@ where
     }
 }
 
-/// [`IntoRegexCharIter::Iter`] for [`WithParameters`]`<`[`Parameter`]`>`.
+// TODO: Replace with TAIT, once stabilized:
+//       https://github.com/rust-lang/rust/issues/63063
+/// [`IntoRegexCharIter::Iter`] for [`WithCustom`]`<`[`Parameter`]`>`.
 type WithParsIter<I, P> = Either<
     iter::Chain<
         iter::Chain<
             iter::Once<Result<char, UnknownParameterError<I>>>,
             iter::Map<
-                <<P as ParametersProvider<I>>::Value as InputIter>::IterElem,
+                <<P as Provider<I>>::Value as InputIter>::IterElem,
                 fn(
-                    <<P as ParametersProvider<I>>::Value as InputIter>::Item,
+                    <<P as Provider<I>>::Value as InputIter>::Item,
                 ) -> Result<char, UnknownParameterError<I>>,
             >,
         >,

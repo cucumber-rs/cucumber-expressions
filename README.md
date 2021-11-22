@@ -10,7 +10,7 @@
 
 Rust implementation of [Cucumber Expressions].
 
-This crate provides [AST] parser, and [Regex] expansion of [Cucumber Expressions].
+This crate provides [AST] parser, and [`Regex`] expansion of [Cucumber Expressions].
 
 ```rust
 use cucumber_expressions::Expression;
@@ -47,7 +47,8 @@ single-alternation      = ((text-in-alternative+, optional*)
                             | (optional+, text-in-alternative+))+
 text-in-alternative     = (- alternative-to-escape)
                            | ('\', alternative-to-escape)
-alternative-to-escape   = ' ' | '(' | '{' | '/' | '\'
+alternative-to-escape   = whitespace | '(' | '{' | '/' | '\'
+whitespace              = ' '
 
 optional                = '(' text-in-optional+ ')'
 text-in-optional        = (- optional-to-escape) | ('\', optional-to-escape)
@@ -57,6 +58,13 @@ parameter               = '{', name*, '}'
 name                    = (- name-to-escape) | ('\', name-to-escape)
 name-to-escape          = '{' | '}' | '(' | '/' | '\'
 ```
+
+
+
+
+## Production Rules
+
+Follows original [production rules].
 
 
 
@@ -85,5 +93,6 @@ at your option.
 [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 [Cucumber Expressions]: https://github.com/cucumber/cucumber-expressions#readme
 [EBNF]: https://en.wikipedia.org/wiki/Extended_Backus–Naur_form
+[production rules]: https://github.com/cucumber/cucumber-expressions/blob/main/ARCHITECTURE.md#production-rules
 
 [1]: https://github.com/cucumber/cucumber-expressions/issues/41

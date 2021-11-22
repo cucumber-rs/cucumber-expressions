@@ -113,7 +113,4 @@ pub use self::ast::{
 };
 #[cfg(feature = "into-regex")]
 #[doc(inline)]
-pub use self::expand::{
-    ExpansionError as Error, IntoRegexCharIter, ParametersProvider,
-    WithParameters,
-};
+pub use self::expand::ExpansionError as Error;

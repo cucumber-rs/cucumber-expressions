@@ -145,8 +145,8 @@ jobs:
   fuzz:
     name: Fuzzing
     if: ${{ github.ref == 'refs/heads/main'
-      || startsWith(github.ref, 'refs/tags/v')
-      || !contains(github.event.head_commit.message, '[skip ci]') }}
+            || startsWith(github.ref, 'refs/tags/v')
+            || !contains(github.event.head_commit.message, '[skip ci]') }}
     strategy:
       fail-fast: false
       matrix:

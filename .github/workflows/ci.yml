@@ -163,7 +163,9 @@ jobs:
         with:
           profile: minimal
           toolchain: nightly
-          components: cargo-fuzz
+
+      - name: Install cargo-fuzz
+        run: cargo install cargo-fuzz
 
       - name: Fuzz for 30 seconds
         run: make fuzz target=${{ matrix.fuzz-target }}

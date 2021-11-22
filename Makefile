@@ -25,6 +25,9 @@ fmt: cargo.fmt
 lint: cargo.lint
 
 
+fuzz: cargo.fuzz
+
+
 test: test.cargo
 
 
@@ -65,6 +68,16 @@ cargo.fmt:
 
 cargo.lint:
 	cargo clippy --all-features -- -D warnings
+
+
+# Fuzz Rust sources with cargo-fuzz.
+#
+# Usage:
+#	make cargo.fuzz target=<target-name> [time=<timeout>]
+
+cargo.fuzz:
+	cargo fuzz run $(target) -- \
+		-max_total_time=$(if $(call eq,$(time),),30,$(time))
 
 
 cargo.test: test.cargo

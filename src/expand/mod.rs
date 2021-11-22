@@ -8,14 +8,14 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-//! [Cucumber Expressions][0] [AST] into [`Regex`] transformation.
+//! [Cucumber Expressions][0] [AST] into [`Regex`] expansion.
 //!
-//! Follows [production rules][1].
+//! Follows original [production rules][1].
 //!
 //! [`Regex`]: regex::Regex
-//! [0]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
+//! [0]: https://github.com/cucumber/cucumber-expressions#readme
 //! [1]: https://git.io/J159T
-//! [AST]: https://github.com/cucumber/cucumber-expressions#readme
+//! [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 
 pub mod parameters;
 
@@ -31,18 +31,20 @@ use crate::{
     SingleAlternation, SingleExpression, Spanned,
 };
 
-pub use parameters::{
+pub use self::parameters::{
     Provider as ParametersProvider, WithCustom as WithCustomParameters,
 };
 
 #[allow(clippy::multiple_inherent_impl)] // because of `into-regex` feature
 impl<'s> Expression<Spanned<'s>> {
-    /// Transforms `Input` into [`Regex`].
+    /// Parses the given `input` as an [`Expression`], and immediately expands
+    /// it into the appropriate [`Regex`].
     ///
     /// # Parameter types
     ///
-    /// Text between curly braces reference a *parameter type*. Cucumber
-    /// comes with the following built-in parameter types:
+    /// Text between curly braces references a *parameter type*.
+    /// [Cucumber Expressions][0] come with the following
+    /// [built-in parameter types][1]:
     ///
     /// | Parameter Type  | Description                                    |
     /// | --------------- | ---------------------------------------------- |
@@ -52,25 +54,28 @@ impl<'s> Expression<Spanned<'s>> {
     /// | `{string}`      | Matches single-quoted or double-quoted strings |
     /// | `{}` anonymous  | Matches anything (`/.*/`)                      |
     ///
-    /// To expand [`Expression`] with custom parameter types in addition to the
-    /// built-in ones, see [`Expression::regex_with_parameters()`].
+    /// To expand an [`Expression`] with custom parameter types in addition to
+    /// the built-in ones, use [`Expression::regex_with_parameters()`].
     ///
     /// # Errors
     ///
     /// See [`Error`] for more details.
     ///
-    /// [`Error`]: ExpansionError
+    /// [`Error`]: enum@Error
+    /// [0]: https://github.com/cucumber/cucumber-expressions#readme
+    /// [1]: https://github.com/cucumber/cucumber-expressions#parameter-types
     pub fn regex<Input: AsRef<str> + ?Sized>(
         input: &'s Input,
-    ) -> Result<Regex, ExpansionError<Spanned<'s>>> {
+    ) -> Result<Regex, Error<Spanned<'s>>> {
         let re_str = Expression::parse(input)?
             .into_regex_char_iter()
             .collect::<Result<String, _>>()?;
         Regex::new(&re_str).map_err(Into::into)
     }
 
-    /// Transforms `Input` into [`Regex`] with `Parameters` in addition to
-    /// [default ones][0].
+    /// Parses the given `input` as an [`Expression`], and immediately expands
+    /// it into the appropriate [`Regex`], considering the custom defined
+    /// `parameters` in addition to [default ones][1].
     ///
     /// # Errors
     ///
@@ -96,12 +101,12 @@ impl<'s> Expression<Spanned<'s>> {
     /// );
     /// ```
     ///
-    /// [0]: Expression#parameter-types
-    /// [`Error`]: ExpansionError
+    /// [`Error`]: enum@Error
+    /// [1]: https://github.com/cucumber/cucumber-expressions#parameter-types
     pub fn regex_with_parameters<Input, Parameters>(
         input: &'s Input,
         parameters: Parameters,
-    ) -> Result<Regex, ExpansionError<Spanned<'s>>>
+    ) -> Result<Regex, Error<Spanned<'s>>>
     where
         Input: AsRef<str> + ?Sized,
         Parameters: Clone + ParametersProvider<Spanned<'s>>,
@@ -115,24 +120,28 @@ impl<'s> Expression<Spanned<'s>> {
         Regex::new(&re_str).map_err(Into::into)
     }
 
-    /// Adds [`ParametersProvider`] for transforming into [`Regex`].
+    /// Creates a parser, parsing [`Expression`]s and immediately expanding them
+    /// into appropriate [`Regex`]es, considering the custom defined
+    /// `parameters` in addition to [default ones][1].
+    ///
+    /// [1]: https://github.com/cucumber/cucumber-expressions#parameter-types
     pub fn with_parameters<P: ParametersProvider<Spanned<'s>>>(
         self,
         parameters: P,
     ) -> WithCustomParameters<Self, P> {
         WithCustomParameters {
-            item: self,
+            element: self,
             parameters,
         }
     }
 }
 
-/// Possible errors while transforming `Input` representing a
-/// [Cucumber Expression][0] into a [`Regex`].
+/// Possible errors while parsing `Input` representing a
+/// [Cucumber Expression][0] and expanding it into a [`Regex`].
 ///
 /// [0]: https://github.com/cucumber/cucumber-expressions#readme
 #[derive(Clone, Debug, Display, Error, From)]
-pub enum ExpansionError<Input>
+pub enum Error<Input>
 where
     Input: fmt::Display,
 {
@@ -144,12 +153,12 @@ where
     #[display(fmt = "Regex expansion failed: {}", _0)]
     Expansion(UnknownParameterError<Input>),
 
-    /// Regex error.
-    #[display(fmt = "Regex failed: {}", _0)]
+    /// [`Regex`] creation error.
+    #[display(fmt = "Regex creation failed: {}", _0)]
     Regex(regex::Error),
 }
 
-/// [`Parameter`] not found.
+/// Error of an unknown [`Parameter`] being used in an [`Expression`].
 #[derive(Clone, Copy, Debug, Display, Error)]
 #[display(fmt = "Parameter '{}' not found.", not_found)]
 pub struct UnknownParameterError<Input>
@@ -160,13 +169,14 @@ where
     pub not_found: Input,
 }
 
-/// Transforming a [Cucumber Expressions][0] [AST] element into a [`Regex`] by
-/// producing a [`char`]s [`Iterator`].
+/// Expansion of a [Cucumber Expressions][0] [AST] element into a [`Regex`] by
+/// producing a [`char`]s [`Iterator`] following original [production rules][1].
 ///
 /// [0]: https://github.com/cucumber/cucumber-expressions#readme
+/// [1]: https://git.io/J159T
 /// [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 pub trait IntoRegexCharIter<Input: fmt::Display> {
-    /// [`Iterator`] for transforming into a [`Regex`].
+    /// Type of an [`Iterator`] performing the expansion.
     type Iter: Iterator<Item = Result<char, UnknownParameterError<Input>>>;
 
     /// Consumes this [AST] element returning an [`Iterator`] over [`char`]s
@@ -494,7 +504,7 @@ where
 }
 
 /// [`Iterator`] for escaping `^`, `$`, `[`, `]`, `(`, `)`, `{`, `}`, `.`, `|`,
-/// `?`, `*`, `+` with `\` and removing it for other [`char`]s.
+/// `?`, `*`, `+` with `\`, and removing it for other [`char`]s.
 ///
 /// # Example
 ///
@@ -562,90 +572,75 @@ where
     }
 }
 
-// all tests from https://git.io/J159G
+// All test examples from: <https://git.io/J159G>
+// Naming of test cases is preserved.
 #[cfg(test)]
 mod spec {
-    use super::{ExpansionError as Error, Expression, UnknownParameterError};
+    use super::{Error, Expression, UnknownParameterError};
 
     #[test]
     fn alternation_with_optional() {
-        assert_eq!(
-            Expression::regex("a/b(c)")
-                .unwrap_or_else(|e| panic!("failed: {}", e))
-                .as_str(),
-            "^(?:a|b(?:c)?)$",
-        );
+        let expr = Expression::regex("a/b(c)")
+            .unwrap_or_else(|e| panic!("failed: {}", e));
+
+        assert_eq!(expr.as_str(), "^(?:a|b(?:c)?)$");
     }
 
     #[test]
     fn alternation() {
-        assert_eq!(
-            Expression::regex("a/b c/d/e")
-                .unwrap_or_else(|e| panic!("failed: {}", e))
-                .as_str(),
-            "^(?:a|b) (?:c|d|e)$",
-        );
+        let expr = Expression::regex("a/b c/d/e")
+            .unwrap_or_else(|e| panic!("failed: {}", e));
+
+        assert_eq!(expr.as_str(), "^(?:a|b) (?:c|d|e)$");
     }
 
     #[test]
     fn empty() {
-        assert_eq!(
-            Expression::regex("")
-                .unwrap_or_else(|e| panic!("failed: {}", e))
-                .as_str(),
-            "^$",
-        );
+        let expr =
+            Expression::regex("").unwrap_or_else(|e| panic!("failed: {}", e));
+
+        assert_eq!(expr.as_str(), "^$");
     }
 
     #[test]
     fn escape_regex_characters() {
-        assert_eq!(
-            Expression::regex("^$[]\\(\\){}\\\\.|?*+")
-                .unwrap_or_else(|e| panic!("failed: {}", e))
-                .as_str(),
-            "^\\^\\$\\[\\]\\(\\)(.*)\\\\\\.\\|\\?\\*\\+$",
-        );
+        let expr = Expression::regex(r"^$[]\(\){}\\.|?*+")
+            .unwrap_or_else(|e| panic!("failed: {}", e));
+
+        assert_eq!(expr.as_str(), r"^\^\$\[\]\(\)(.*)\\\.\|\?\*\+$");
     }
 
     #[test]
     fn optional() {
-        assert_eq!(
-            Expression::regex("(a)")
-                .unwrap_or_else(|e| panic!("failed: {}", e))
-                .as_str(),
-            "^(?:a)?$",
-        );
+        let expr = Expression::regex("(a)")
+            .unwrap_or_else(|e| panic!("failed: {}", e));
+
+        assert_eq!(expr.as_str(), "^(?:a)?$");
     }
 
     #[test]
     fn parameter() {
-        assert_eq!(
-            Expression::regex("{int}")
-                .unwrap_or_else(|e| panic!("failed: {}", e))
-                .as_str(),
-            "^((?:-?\\d+)|(?:\\d+))$",
-        );
+        let expr = Expression::regex("{int}")
+            .unwrap_or_else(|e| panic!("failed: {}", e));
+
+        assert_eq!(expr.as_str(), "^((?:-?\\d+)|(?:\\d+))$");
     }
 
     #[test]
     fn text() {
-        assert_eq!(
-            Expression::regex("a")
-                .unwrap_or_else(|e| panic!("failed: {}", e))
-                .as_str(),
-            "^a$",
-        );
+        let expr =
+            Expression::regex("a").unwrap_or_else(|e| panic!("failed: {}", e));
+
+        assert_eq!(expr.as_str(), "^a$");
     }
 
     #[allow(clippy::non_ascii_literal)]
     #[test]
     fn unicode() {
-        assert_eq!(
-            Expression::regex("Привет, Мир(ы)!")
-                .unwrap_or_else(|e| panic!("failed: {}", e))
-                .as_str(),
-            "^Привет, Мир(?:ы)?!$",
-        );
+        let expr = Expression::regex("Привет, Мир(ы)!")
+            .unwrap_or_else(|e| panic!("failed: {}", e));
+
+        assert_eq!(expr.as_str(), "^Привет, Мир(?:ы)?!$");
     }
 
     #[test]

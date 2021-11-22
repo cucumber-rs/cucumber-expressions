@@ -8,12 +8,9 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-//! [Cucumber Expressions][0] [AST] with custom [`Parameter`]s into [`Regex`]
-//! transformation definitions.
+//! Support for [custom][1] [`Parameter`]s.
 //!
-//! [0]: https://github.com/cucumber/cucumber-expressions#readme
-//! [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
-//! [`Regex`]: regex::Regex
+//! [1]: https://github.com/cucumber/cucumber-expressions#custom-parameter-types
 
 use std::{collections::HashMap, fmt::Display, iter, vec};
 
@@ -27,28 +24,33 @@ use super::{
     UnknownParameterError,
 };
 
-/// Struct for pairing [Cucumber Expressions][0] [AST] `Item` with custom
-/// `Parameters`.
+/// Parser of a [Cucumber Expressions][0] [AST] `Element` with [custom][1]
+/// `Parameters` in mind.
 ///
-/// Every [`Parameter`] should be represented by single [`Regex`] capturing
+/// Every [`Parameter`] should be represented by a single [`Regex`] capturing
 /// group.
 ///
-/// [0]: https://github.com/cucumber/cucumber-expressions#readme
-/// [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 /// [`Regex`]: regex::Regex
+/// [0]: https://github.com/cucumber/cucumber-expressions#readme
+/// [1]: https://github.com/cucumber/cucumber-expressions#custom-parameter-types
+/// [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 #[derive(Clone, Copy, Debug)]
-pub struct WithCustom<Item, Parameters> {
-    /// [Cucumber Expressions][0] [AST] `Item`.
+pub struct WithCustom<Element, Parameters> {
+    /// Parsed element of a [Cucumber Expressions][0] [AST].
     ///
     /// [0]: https://github.com/cucumber/cucumber-expressions#readme
     /// [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
-    pub item: Item,
+    pub element: Element,
 
-    /// Custom `Parameters`.
+    /// Custom `Parameters` (in addition to [default ones][1]) to be used for
+    /// expanding the `Element` into a [`Regex`].
+    ///
+    /// [`Regex`]: regex::Regex
+    /// [1]: https://github.com/cucumber/cucumber-expressions#parameter-types
     pub parameters: Parameters,
 }
 
-/// Provider for custom [`Parameter`]s.
+/// Provider of custom [`Parameter`]s.
 pub trait Provider<Input> {
     /// `<`[`Value`]` as `[`InputIter`]`>::`[`Item`].
     ///
@@ -56,14 +58,14 @@ pub trait Provider<Input> {
     /// [`Value`]: Self::Value
     type Item: AsChar;
 
-    /// Returned value, that will be inserted into [`Regex`].
+    /// Value matcher to be used in a [`Regex`].
     ///
-    /// Should be represented by single [`Regex`] capturing group.
+    /// Should be represented by a single [`Regex`] capturing group.
     ///
     /// [`Regex`]: regex::Regex
     type Value: InputIter<Item = Self::Item>;
 
-    /// Returns [`Value`] corresponding to the `input`, if present.
+    /// Returns a [`Value`] matcher corresponding to the given `input`, if any.
     ///
     /// [`Value`]: Self::Value
     fn get(&self, input: &Input) -> Option<Self::Value>;
@@ -100,13 +102,15 @@ where
     type Iter = ExpressionWithParsIter<Input, Pars>;
 
     fn into_regex_char_iter(self) -> Self::Iter {
-        let add_pars: fn(_) -> _ =
-            |(item, parameters)| WithCustom { item, parameters };
+        let add_pars: fn(_) -> _ = |(item, parameters)| WithCustom {
+            element: item,
+            parameters,
+        };
         let into_regex_char_iter: fn(_) -> _ =
             IntoRegexCharIter::into_regex_char_iter;
         iter::once(Ok('^'))
             .chain(
-                self.item
+                self.element
                     .0
                     .into_iter()
                     .zip(iter::repeat(self.parameters))
@@ -152,16 +156,16 @@ where
     fn into_regex_char_iter(self) -> Self::Iter {
         use Either::{Left, Right};
 
-        if let SingleExpression::Parameter(item) = self.item {
+        if let SingleExpression::Parameter(item) = self.element {
             Left(
                 WithCustom {
-                    item,
+                    element: item,
                     parameters: self.parameters,
                 }
                 .into_regex_char_iter(),
             )
         } else {
-            Right(self.item.into_regex_char_iter())
+            Right(self.element.into_regex_char_iter())
         }
     }
 }
@@ -188,8 +192,8 @@ where
         use Either::{Left, Right};
 
         let ok: fn(_) -> _ = |c: <P::Value as InputIter>::Item| Ok(c.as_char());
-        self.parameters.get(&self.item).map_or_else(
-            || Right(self.item.into_regex_char_iter()),
+        self.parameters.get(&self.element).map_or_else(
+            || Right(self.element.into_regex_char_iter()),
             |v| {
                 Left(
                     iter::once(Ok('('))
@@ -222,32 +226,26 @@ type WithParsIter<I, P> = Either<
 
 #[cfg(test)]
 mod spec {
-    use crate::Error;
+    use crate::expand::Error;
 
     use super::{Expression, HashMap, UnknownParameterError};
 
     #[test]
     fn custom_parameter() {
         let pars = HashMap::from([("custom", "custom")]);
+        let expr = Expression::regex_with_parameters("{custom}", &pars)
+            .unwrap_or_else(|e| panic!("failed: {}", e));
 
-        assert_eq!(
-            Expression::regex_with_parameters("{custom}", &pars)
-                .unwrap_or_else(|e| panic!("failed: {}", e))
-                .as_str(),
-            "^(custom)$",
-        );
+        assert_eq!(expr.as_str(), "^(custom)$");
     }
 
     #[test]
     fn default_parameter() {
         let pars = HashMap::from([("custom", "custom")]);
+        let expr = Expression::regex_with_parameters("{}", &pars)
+            .unwrap_or_else(|e| panic!("failed: {}", e));
 
-        assert_eq!(
-            Expression::regex_with_parameters("{}", &pars)
-                .unwrap_or_else(|e| panic!("failed: {}", e))
-                .as_str(),
-            "^(.*)$",
-        );
+        assert_eq!(expr.as_str(), "^(.*)$");
     }
 
     #[test]

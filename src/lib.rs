@@ -103,9 +103,6 @@ mod combinator;
 pub mod expand;
 pub mod parse;
 
-// TODO: Remove once `derive_more` 0.99.17 is released.
-use syn as _;
-
 #[doc(inline)]
 pub use self::ast::{
     Alternation, Alternative, Expression, Optional, Parameter,

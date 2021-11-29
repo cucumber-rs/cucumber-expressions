@@ -6,8 +6,25 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 
 
 
+## [0.1.1] · 2021-11-29
+[0.1.1]: /../../tree/v0.1.1
+
+[Diff](/../../compare/v0.1.0...v0.1.1) | [Milestone](/../../milestone/2)
+
+### Updated
+
+- [`derive_more`] minimal version to `0.99.17`. ([#5])
+
+[#5]: /../../pull/5
+[`derive_more`]: https://docs.rs/derive_more
+
+
+
+
 ## [0.1.0] · 2021-11-22
 [0.1.0]: /../../tree/v0.1.0
+
+[Milestone](/../../milestone/1)
 
 ### Added
 

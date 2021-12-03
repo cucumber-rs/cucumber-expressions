@@ -160,35 +160,35 @@ where
 {
     let is_name = |c| !"{}(\\/".contains(c);
 
-    let fail = |input: Input, opening_brace| {
-        match input.iter_elements().next().map(AsChar::as_char) {
+    let fail = |inp: Input, opening_brace| {
+        match inp.iter_elements().next().map(AsChar::as_char) {
             Some('{') => {
                 if let Ok((_, (par, ..))) = peek(tuple((
                     parameter,
                     escaped_reserved_chars0(take_while(is_name)),
                     tag("}"),
-                )))(input.clone())
+                )))(inp.clone())
                 {
                     return Error::NestedParameter(
-                        input.take(par.0.input_len() + 2),
+                        inp.take(par.0.input_len() + 2),
                     )
                     .failure();
                 }
-                return Error::UnescapedReservedCharacter(input.take(1))
+                return Error::UnescapedReservedCharacter(inp.take(1))
                     .failure();
             }
             Some('(') => {
-                if let Ok((_, opt)) = peek(optional)(input.clone()) {
+                if let Ok((_, opt)) = peek(optional)(inp.clone()) {
                     return Error::OptionalInParameter(
-                        input.take(opt.0.input_len() + 2),
+                        inp.take(opt.0.input_len() + 2),
                     )
                     .failure();
                 }
-                return Error::UnescapedReservedCharacter(input.take(1))
+                return Error::UnescapedReservedCharacter(inp.take(1))
                     .failure();
             }
             Some(c) if RESERVED_CHARS.contains(c) => {
-                return Error::UnescapedReservedCharacter(input.take(1))
+                return Error::UnescapedReservedCharacter(inp.take(1))
                     .failure();
             }
             _ => {}
@@ -273,38 +273,38 @@ where
 {
     let is_in_optional = |c| !"(){\\/".contains(c);
 
-    let fail = |input: Input, opening_brace| {
-        match input.iter_elements().next().map(AsChar::as_char) {
+    let fail = |inp: Input, opening_brace| {
+        match inp.iter_elements().next().map(AsChar::as_char) {
             Some('(') => {
                 if let Ok((_, (opt, ..))) = peek(tuple((
                     optional,
                     escaped_reserved_chars0(take_while(is_in_optional)),
                     tag(")"),
-                )))(input.clone())
+                )))(inp.clone())
                 {
                     return Error::NestedOptional(
-                        input.take(opt.0.input_len() + 2),
+                        inp.take(opt.0.input_len() + 2),
                     )
                     .failure();
                 }
-                return Error::UnescapedReservedCharacter(input.take(1))
+                return Error::UnescapedReservedCharacter(inp.take(1))
                     .failure();
             }
             Some('{') => {
-                if let Ok((_, par)) = peek(parameter)(input.clone()) {
+                if let Ok((_, par)) = peek(parameter)(inp.clone()) {
                     return Error::ParameterInOptional(
-                        input.take(par.0.input_len() + 2),
+                        inp.take(par.0.input_len() + 2),
                     )
                     .failure();
                 }
-                return Error::UnescapedReservedCharacter(input.take(1))
+                return Error::UnescapedReservedCharacter(inp.take(1))
                     .failure();
             }
             Some('/') => {
-                return Error::AlternationInOptional(input.take(1)).failure();
+                return Error::AlternationInOptional(inp.take(1)).failure();
             }
             Some(c) if RESERVED_CHARS.contains(c) => {
-                return Error::UnescapedReservedCharacter(input.take(1))
+                return Error::UnescapedReservedCharacter(inp.take(1))
                     .failure();
             }
             _ => {}

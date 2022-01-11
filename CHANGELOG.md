@@ -6,7 +6,7 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 
 
 
-## [0.1.2] · 2022-01-??
+## [0.1.2] · 2022-01-11
 [0.1.2]: /../../tree/v0.1.2
 
 [Diff](/../../compare/v0.1.1...v0.1.2) | [Milestone](/../../milestone/3)

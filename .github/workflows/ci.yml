@@ -7,6 +7,10 @@ on:
   pull_request:
     branches: ["main"]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   RUST_BACKTRACE: 1
 
@@ -120,7 +124,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        msrv: ['1.56.0']
+        msrv: ["1.56.0"]
         os:
           - ubuntu
           - macOS

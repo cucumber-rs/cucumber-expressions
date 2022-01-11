@@ -6,6 +6,20 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 
 
 
+## [0.1.2] · 2022-??-??
+[0.1.2]: /../../tree/v0.1.2
+
+[Diff](/../../compare/v0.1.1...v0.1.2) | [Milestone](/../../milestone/3)
+
+### Fixed
+
+- `float` parameter [`Regex`]. ([#6])
+
+[#5]: /../../pull/6
+
+
+
+
 ## [0.1.1] · 2021-11-29
 [0.1.1]: /../../tree/v0.1.1
 

@@ -416,10 +416,20 @@ where
         if eq(&self.0, "int") {
             Left(r#"((?:-?\d+)|(?:\d+))"#.chars().map(Ok))
         } else if eq(&self.0, "float") {
+            // Regex in other implementations has lookaheads. As `regex` crate
+            // doesn't support them, we use `f32`/`f64` grammar instead:
+            // https://doc.rust-lang.org/stable/std/primitive.f64.html#grammar
+            // Provided grammar is a superset of the original one:
+            // - supports `e` as exponent in addition to `E`
+            // - supports trailing comma: `1.`
+            // - supports `inf` and `NaN`
             Left(
-                r#"((?=.*\d.*)[-+]?\d*(?:\.(?=\d.*))?\d*(?:\d+[E][+-]?\d+)?)"#
-                    .chars()
-                    .map(Ok),
+                "([+-]?(?:inf\
+                         |NaN\
+                         |(?:\\d+|\\d+\\.\\d*|\\d*\\.\\d+)(?:[eE][+-]?\\d+)?\
+                       ))"
+                .chars()
+                .map(Ok),
             )
         } else if eq(&self.0, "word") {
             Left(r#"([^\s]+)"#.chars().map(Ok))
@@ -592,6 +602,11 @@ mod spec {
             .unwrap_or_else(|e| panic!("failed: {}", e));
 
         assert_eq!(expr.as_str(), "^(?:a|b) (?:c|d|e)$");
+        assert!(expr.is_match("a c"));
+        assert!(expr.is_match("b e"));
+        assert!(!expr.is_match("c e"));
+        assert!(!expr.is_match("a"));
+        assert!(!expr.is_match("a "));
     }
 
     #[test]
@@ -600,14 +615,17 @@ mod spec {
             Expression::regex("").unwrap_or_else(|e| panic!("failed: {}", e));
 
         assert_eq!(expr.as_str(), "^$");
+        assert!(expr.is_match(""));
+        assert!(!expr.is_match("a"));
     }
 
     #[test]
     fn escape_regex_characters() {
-        let expr = Expression::regex(r"^$[]\(\){}\\.|?*+")
+        let expr = Expression::regex(r"^$[]\()\{}\\.|?*+")
             .unwrap_or_else(|e| panic!("failed: {}", e));
 
-        assert_eq!(expr.as_str(), r"^\^\$\[\]\(\)(.*)\\\.\|\?\*\+$");
+        assert_eq!(expr.as_str(), r"^\^\$\[\]\(\)\{\}\\\.\|\?\*\+$");
+        assert!(expr.is_match("^$[](){}\\.|?*+"));
     }
 
     #[test]
@@ -616,14 +634,80 @@ mod spec {
             .unwrap_or_else(|e| panic!("failed: {}", e));
 
         assert_eq!(expr.as_str(), "^(?:a)?$");
+        assert!(expr.is_match(""));
+        assert!(expr.is_match("a"));
+        assert!(!expr.is_match("b"));
     }
 
     #[test]
-    fn parameter() {
+    fn parameter_int() {
         let expr = Expression::regex("{int}")
             .unwrap_or_else(|e| panic!("failed: {}", e));
 
         assert_eq!(expr.as_str(), "^((?:-?\\d+)|(?:\\d+))$");
+        assert!(expr.is_match("123"));
+        assert!(expr.is_match("-123"));
+        assert!(!expr.is_match("+123"));
+        assert!(!expr.is_match("123."));
+    }
+
+    #[test]
+    fn parameter_float() {
+        let expr = Expression::regex("{float}")
+            .unwrap_or_else(|e| panic!("failed: {}", e));
+
+        assert_eq!(
+            expr.as_str(),
+            "^([+-]?(?:inf\
+                      |NaN\
+                      |(?:\\d+|\\d+\\.\\d*|\\d*\\.\\d+)(?:[eE][+-]?\\d+)?\
+                    ))$",
+        );
+        assert!(expr.is_match("+1"));
+        assert!(expr.is_match(".1"));
+        assert!(expr.is_match("-.1"));
+        assert!(expr.is_match("-1."));
+        assert!(expr.is_match("-1.1E+1"));
+        assert!(expr.is_match("-inf"));
+        assert!(expr.is_match("NaN"));
+    }
+
+    #[test]
+    fn parameter_word() {
+        let expr = Expression::regex("{word}")
+            .unwrap_or_else(|e| panic!("failed: {}", e));
+
+        assert_eq!(expr.as_str(), "^([^\\s]+)$");
+        assert!(expr.is_match("test"));
+        assert!(expr.is_match("\"test\""));
+        assert!(!expr.is_match("with space"));
+    }
+
+    #[test]
+    fn parameter_string() {
+        let expr = Expression::regex("{string}")
+            .unwrap_or_else(|e| panic!("failed: {}", e));
+
+        assert_eq!(
+            expr.as_str(),
+            r#"^("(?:[^"\\]*(?:\\.[^"\\]*)*)"|'(?:[^'\\]*(?:\\.[^'\\]*)*)')$"#,
+        );
+        assert!(expr.is_match("\"\""));
+        assert!(expr.is_match("''"));
+        assert!(expr.is_match("'with \"'"));
+        assert!(expr.is_match("\"with '\""));
+        assert!(expr.is_match("\"with \\\" escaped\""));
+        assert!(expr.is_match("'with \\' escaped'"));
+        assert!(!expr.is_match("word"));
+    }
+
+    #[test]
+    fn parameter_all() {
+        let expr =
+            Expression::regex("{}").unwrap_or_else(|e| panic!("failed: {}", e));
+
+        assert_eq!(expr.as_str(), "^(.*)$");
+        assert!(expr.is_match("anything matches"));
     }
 
     #[test]
@@ -632,6 +716,9 @@ mod spec {
             Expression::regex("a").unwrap_or_else(|e| panic!("failed: {}", e));
 
         assert_eq!(expr.as_str(), "^a$");
+        assert!(expr.is_match("a"));
+        assert!(!expr.is_match("b"));
+        assert!(!expr.is_match("ab"));
     }
 
     #[allow(clippy::non_ascii_literal)]
@@ -641,6 +728,9 @@ mod spec {
             .unwrap_or_else(|e| panic!("failed: {}", e));
 
         assert_eq!(expr.as_str(), "^Привет, Мир(?:ы)?!$");
+        assert!(expr.is_match("Привет, Мир!"));
+        assert!(expr.is_match("Привет, Миры!"));
+        assert!(!expr.is_match("Hello world"));
     }
 
     #[test]

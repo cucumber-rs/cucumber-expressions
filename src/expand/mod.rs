@@ -417,19 +417,19 @@ where
             Left(r#"((?:-?\d+)|(?:\d+))"#.chars().map(Ok))
         } else if eq(&self.0, "float") {
             // Regex in other implementations has lookaheads. As `regex` crate
-            // doesn't support them, we use f32/f64 grammar:
+            // doesn't support them, we use `f32`/`f64` grammar instead:
             // https://doc.rust-lang.org/stable/std/primitive.f64.html#grammar
             // Provided grammar is a superset of the original one:
-            // - supports 'e' as exponent in addition to 'E'
-            // - supports trailing comma: '1.'
-            // - supports 'inf' and 'NaN'
+            // - supports `e` as exponent in addition to `E`
+            // - supports trailing comma: `1.`
+            // - supports `inf` and `NaN`
             Left(
-                "([+-]?(?:\
-                  inf\
-                  |NaN\
-                  |(?:\\d+|\\d+\\.\\d*|\\d*\\.\\d+)(?:[eE][+-]?\\d+)?))"
-                    .chars()
-                    .map(Ok),
+                "([+-]?(?:inf\
+                         |NaN\
+                         |(?:\\d+|\\d+\\.\\d*|\\d*\\.\\d+)(?:[eE][+-]?\\d+)?\
+                       ))"
+                .chars()
+                .map(Ok),
             )
         } else if eq(&self.0, "word") {
             Left(r#"([^\s]+)"#.chars().map(Ok))
@@ -658,10 +658,10 @@ mod spec {
 
         assert_eq!(
             expr.as_str(),
-            "^([+-]?(?:\
-               inf\
-               |NaN\
-               |(?:\\d+|\\d+\\.\\d*|\\d*\\.\\d+)(?:[eE][+-]?\\d+)?))$",
+            "([+-]?(?:inf\
+                     |NaN\
+                     |(?:\\d+|\\d+\\.\\d*|\\d*\\.\\d+)(?:[eE][+-]?\\d+)?\
+                   ))",
         );
         assert!(expr.is_match("+1"));
         assert!(expr.is_match(".1"));

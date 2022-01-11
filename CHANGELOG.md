@@ -6,16 +6,17 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 
 
 
-## [0.1.2] · 2022-??-??
+## [0.1.2] · 2022-01-??
 [0.1.2]: /../../tree/v0.1.2
 
 [Diff](/../../compare/v0.1.1...v0.1.2) | [Milestone](/../../milestone/3)
 
 ### Fixed
 
-- `float` parameter [`Regex`]. ([#6])
+- Unsupported lookaheads in `float` parameter's [`Regex`]. ([#6], [cucumber-rs/cucumber#197])
 
-[#5]: /../../pull/6
+[#6]: /../../pull/6
+[cucumber-rs/cucumber#197]: https://github.com/cucumber-rs/cucumber/issues/197
 
 
 

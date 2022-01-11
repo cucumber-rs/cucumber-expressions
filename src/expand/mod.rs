@@ -658,10 +658,10 @@ mod spec {
 
         assert_eq!(
             expr.as_str(),
-            "([+-]?(?:inf\
-                     |NaN\
-                     |(?:\\d+|\\d+\\.\\d*|\\d*\\.\\d+)(?:[eE][+-]?\\d+)?\
-                   ))",
+            "^([+-]?(?:inf\
+                      |NaN\
+                      |(?:\\d+|\\d+\\.\\d*|\\d*\\.\\d+)(?:[eE][+-]?\\d+)?\
+                    ))$",
         );
         assert!(expr.is_match("+1"));
         assert!(expr.is_match(".1"));

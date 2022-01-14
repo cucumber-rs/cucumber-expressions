@@ -233,6 +233,7 @@ mod spec {
     #[test]
     fn custom_parameter() {
         let pars = HashMap::from([("custom", "custom")]);
+        // TODO: Use "{e}" syntax once MSRV bumps above 1.58.
         let expr = Expression::regex_with_parameters("{custom}", &pars)
             .unwrap_or_else(|e| panic!("failed: {}", e));
 
@@ -242,6 +243,7 @@ mod spec {
     #[test]
     fn default_parameter() {
         let pars = HashMap::from([("custom", "custom")]);
+        // TODO: Use "{e}" syntax once MSRV bumps above 1.58.
         let expr = Expression::regex_with_parameters("{}", &pars)
             .unwrap_or_else(|e| panic!("failed: {}", e));
 
@@ -258,6 +260,7 @@ mod spec {
                 assert_eq!(*not_found, "custom");
             }
             e @ (Error::Regex(_) | Error::Parsing(_)) => {
+                // TODO: Use "{e}" syntax once MSRV bumps above 1.58.
                 panic!("wrong err: {}", e)
             }
         }

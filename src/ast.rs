@@ -170,4 +170,13 @@ pub struct Optional<Input>(pub Input);
 ///
 /// [0]: crate#grammar
 #[derive(AsRef, Clone, Copy, Debug, Deref, DerefMut, Eq, PartialEq)]
-pub struct Parameter<Input>(pub Input);
+pub struct Parameter<Input> {
+    /// Inner `Input`.
+    #[deref]
+    #[deref_mut]
+    pub input: Input,
+
+    /// ID of the [`Parameter`].
+    #[as_ref(ignore)]
+    pub id: usize,
+}

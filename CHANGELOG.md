@@ -6,6 +6,23 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 
 
 
+## [0.2.0] · 2022-??-??
+[0.2.0]: /../../tree/v0.2.0
+
+[Diff](/../../compare/v0.1.2...v0.2.0) | [Milestone](/../../milestone/4)
+
+### Changed
+
+- Add [`id` field to the `Parameter`][id-param-field] AST struct. ([#8], [#7])
+- Add `string_<id>` name to `string` parameter [`Regex`] capture groups. ([#8], [#7])
+
+[#7]: /../../issues/7
+[#8]: /../../pull/8
+[id-param-field]: https://docs.rs/cucumber-expressions/latest/cucumber_expressions/struct.Parameter.html#structfield.id
+
+
+
+
 ## [0.1.2] · 2022-01-11
 [0.1.2]: /../../tree/v0.1.2
 

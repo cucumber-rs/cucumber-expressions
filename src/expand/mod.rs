@@ -541,7 +541,8 @@ pub struct OwnedChars {
 
 impl OwnedChars {
     /// Creates a new [`OwnedChars`] [`Iterator`].
-    pub fn new(str: String) -> Self {
+    #[must_use]
+    pub const fn new(str: String) -> Self {
         Self { str, cur: 0 }
     }
 }

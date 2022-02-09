@@ -302,7 +302,7 @@ type WithParsIter<I, P> = Either<
 
 /// Helper methods to work with [`Regex`]es [`Hir`].
 ///
-/// [`Hir`]: hir::Hir
+/// [`Hir`]: regex_syntax::hir::Hir
 /// [`Regex`]: regex::Regex
 mod regex_hir {
     use std::mem;

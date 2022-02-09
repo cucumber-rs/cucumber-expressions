@@ -1533,7 +1533,7 @@ mod spec {
         };
 
         #[test]
-        fn string_parameters_ids() {
+        fn parameters_ids() {
             assert_ast_eq(
                 unwrap_parser(expression(Spanned::new("{string} {string}"))),
                 r#"Expression(

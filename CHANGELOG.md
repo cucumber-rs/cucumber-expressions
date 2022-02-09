@@ -14,7 +14,7 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 ### Changed
 
 - Add [`id` field to the `Parameter`][id-param-field] AST struct. ([#8], [#7])
-- Add `string_<id>` name to `string` parameter [`Regex`] capture groups. ([#8], [#7])
+- Support capturing groups inside `Parameter` regex. ([#8], [#7])
 
 [#7]: /../../issues/7
 [#8]: /../../pull/8

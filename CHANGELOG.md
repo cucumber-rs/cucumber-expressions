@@ -11,14 +11,16 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 
 [Diff](/../../compare/v0.1.2...v0.2.0) | [Milestone](/../../milestone/4)
 
-### Changed
+### BC Breaks
 
-- Add [`id` field to the `Parameter`][id-param-field] AST struct. ([#8], [#7])
-- Support capturing groups inside `Parameter` regex. ([#8], [#7])
+- Added `id` field to `Parameter` AST struct. ([#8], [#7])
+
+### Added
+
+- Support of capturing groups inside `Parameter` regex. ([#8], [#7])
 
 [#7]: /../../issues/7
 [#8]: /../../pull/8
-[id-param-field]: https://docs.rs/cucumber-expressions/latest/cucumber_expressions/struct.Parameter.html#structfield.id
 
 
 

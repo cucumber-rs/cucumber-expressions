@@ -165,12 +165,13 @@ where
     Input: fmt::Display,
 {
     /// [`Parameter`] not found.
-    #[display(fmt = "Parameter '{}' not found.", _0)]
+    #[display(fmt = "Parameter `{}` not found.", _0)]
     NotFound(Input),
 
     /// Failed to rename [`Regex`] capturing group.
     #[display(
-        fmt = "Failed to rename groups in regex '{}' of parameter '{}': {}",
+        fmt = "Failed to rename capturing groups in regex `{}` of \
+               parameter `{}`: {}",
         re,
         parameter,
         err
@@ -182,7 +183,7 @@ where
         /// [`Regex`] of the [`Parameter`].
         re: String,
 
-        /// [`Error`] of parsing [`Regex`].
+        /// [`Error`] of parsing the [`Regex`] with renamed capturing groups.
         ///
         /// [`Error`]: regex_syntax::Error
         err: regex_syntax::Error,
@@ -541,7 +542,9 @@ where
     }
 }
 
-/// Like [`str::Chars`], but owns [`String`].
+// TODO: Make private, once TAIT stabilized:
+//       https://github.com/rust-lang/rust/issues/63063
+/// Like [`str::Chars`] [`Iterator`], but owns its [`String`].
 #[derive(Clone, Debug)]
 pub struct OwnedChars {
     /// Iterated [`String`].
@@ -756,8 +759,8 @@ mod spec {
         assert_eq!(
             expr.as_str(),
             "^(?:\
-                \"(?P<__0_0>[^\"\\\\]*(?:\\\\.[^\"\\\\]*)*)\"|\
-                '(?P<__0_1>[^'\\\\]*(?:\\\\.[^'\\\\]*)*)'\
+                \"(?P<__0_0>[^\"\\\\]*(?:\\\\.[^\"\\\\]*)*)\"\
+                |'(?P<__0_1>[^'\\\\]*(?:\\\\.[^'\\\\]*)*)'\
              )$",
         );
         assert!(expr.is_match("\"\""));
@@ -778,11 +781,11 @@ mod spec {
         assert_eq!(
             expr.as_str(),
             "^(?:\
-                \"(?P<__0_0>[^\"\\\\]*(?:\\\\.[^\"\\\\]*)*)\"|\
-                '(?P<__0_1>[^'\\\\]*(?:\\\\.[^'\\\\]*)*)'\
+                \"(?P<__0_0>[^\"\\\\]*(?:\\\\.[^\"\\\\]*)*)\"\
+                |'(?P<__0_1>[^'\\\\]*(?:\\\\.[^'\\\\]*)*)'\
               ) (?:\
-                \"(?P<__1_0>[^\"\\\\]*(?:\\\\.[^\"\\\\]*)*)\"|\
-                '(?P<__1_1>[^'\\\\]*(?:\\\\.[^'\\\\]*)*)'\
+                \"(?P<__1_0>[^\"\\\\]*(?:\\\\.[^\"\\\\]*)*)\"\
+                |'(?P<__1_1>[^'\\\\]*(?:\\\\.[^'\\\\]*)*)'\
               )$",
         );
         assert!(expr.is_match("\"\" ''"));

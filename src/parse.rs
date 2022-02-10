@@ -133,6 +133,11 @@ where
 /// - [`UnescapedReservedCharacter`].
 /// - [`UnfinishedParameter`].
 ///
+/// # Indexing
+///
+/// The given `indexer` is incremented only if the parsed [`Parameter`] is
+/// returned.
+///
 /// [`Error`]: Err::Error
 /// [`Failure`]: Err::Failure
 /// [`EscapedNonReservedCharacter`]: Error::EscapedNonReservedCharacter
@@ -143,7 +148,7 @@ where
 /// [0]: crate#grammar
 pub fn parameter<'a, Input: 'a>(
     input: Input,
-    id: &mut usize,
+    indexer: &mut usize,
 ) -> IResult<Input, Parameter<Input>, Error<Input>>
 where
     Input: Clone
@@ -165,6 +170,8 @@ where
         match inp.iter_elements().next().map(AsChar::as_char) {
             Some('{') => {
                 if let Ok((_, (par, ..))) = peek(tuple((
+                    // We don't use `indexer` here, because we do this parsing
+                    // for error reporting only.
                     |i| parameter(i, &mut 0),
                     escaped_reserved_chars0(take_while(is_name)),
                     tag("}"),
@@ -204,12 +211,12 @@ where
         fail(input.clone(), opening_brace.clone())
     })(input.clone())?;
 
-    *id += 1;
+    *indexer += 1;
     Ok((
         input,
         Parameter {
             input: par_name,
-            id: *id - 1,
+            id: *indexer - 1,
         },
     ))
 }
@@ -299,6 +306,8 @@ where
                     .failure();
             }
             Some('{') => {
+                // We use just `0` as `indexer` here, because we do this parsing
+                // for error reporting only.
                 if let Ok((_, par)) =
                     peek(|i| parameter(i, &mut 0))(inp.clone())
                 {
@@ -513,11 +522,16 @@ where
 ///
 /// Any [`Failure`] of [`alternation()`], [`optional()`] or [`parameter()`].
 ///
+/// # Indexing
+///
+/// The given `indexer` is incremented only if the parsed [`SingleExpression`]
+/// is returned and it represents a [`Parameter`].
+///
 /// [`Failure`]: Err::Failure
 /// [0]: crate#grammar
 pub fn single_expression<'a, Input: 'a>(
     input: Input,
-    id: &mut usize,
+    indexer: &mut usize,
 ) -> IResult<Input, SingleExpression<Input>, Error<Input>>
 where
     Input: Clone
@@ -539,7 +553,7 @@ where
     alt((
         map(alternation, SingleExpression::Alternation),
         map(optional, SingleExpression::Optional),
-        map(|i| parameter(i, id), SingleExpression::Parameter),
+        map(|i| parameter(i, indexer), SingleExpression::Parameter),
         map(
             verify(
                 escaped_reserved_chars0(take_while(is_without_whitespace)),
@@ -595,8 +609,11 @@ where
     Error<Input>: ParseError<Input>,
     for<'s> &'s str: FindToken<<Input as InputIter>::Item>,
 {
-    let mut id = 0;
-    map(many0(move |i| single_expression(i, &mut id)), Expression)(input)
+    let mut indexer = 0;
+    map(
+        many0(move |i| single_expression(i, &mut indexer)),
+        Expression,
+    )(input)
 }
 
 /// Possible parsing errors.

@@ -27,10 +27,10 @@ use super::{
 /// Parser of a [Cucumber Expressions][0] [AST] `Element` with [custom][1]
 /// `Parameters` in mind.
 ///
-/// Usually [`Parameter`] should be represented by a single [`Regex`] capturing
-/// group. In case there are multiple capturing groups, they will be named
-/// like `__{parameter_id}_{group_id}`. This is done to identify multiple
-/// capturing groups related to a single parameter.
+/// Usually, a [`Parameter`] is represented by a single [`Regex`] capturing
+/// group. In case there are multiple capturing groups, they will be named like
+/// `__{parameter_id}_{group_id}`. This is done to identify multiple capturing
+/// groups related to a single [`Parameter`].
 ///
 /// [`Regex`]: regex::Regex
 /// [0]: https://github.com/cucumber/cucumber-expressions#readme
@@ -62,10 +62,10 @@ pub trait Provider<Input> {
 
     /// Value matcher to be used in a [`Regex`].
     ///
-    /// Usually [`Parameter`] should be represented by a single [`Regex`]
-    /// capturing group. In case there are multiple capturing groups, they will
-    /// be named like `__{parameter_id}_{group_id}`. This is done to identify
-    /// multiple capturing groups related to a single parameter.
+    /// Usually, a [`Parameter`] is represented by a single [`Regex`] capturing
+    /// group. In case there are multiple capturing groups, they will be named
+    /// like `__{parameter_id}_{group_id}`. This is done to identify multiple
+    /// capturing groups related to a single [`Parameter`].
     ///
     /// [`Regex`]: regex::Regex
     type Value: InputIter<Item = Self::Item>;
@@ -202,7 +202,7 @@ where
             None => Right(Left(self.element.into_regex_char_iter())),
             Some(v) => {
                 // We try to find '(' inside regex. If unsuccessfully, we can be
-                // sure, regex has no groups, so we can skip parsing.
+                // sure that the regex has no groups, so we can skip parsing.
                 let parsed = v
                     .iter_elements()
                     .any(|c| c.as_char() == '(')
@@ -234,7 +234,6 @@ where
                     || {
                         let ok: fn(_) -> _ =
                             |c: <P::Value as InputIter>::Item| Ok(c.as_char());
-
                         Right(Right(Right(
                             iter::once(Ok('('))
                                 .chain(v.iter_elements().map(ok))
@@ -243,8 +242,8 @@ where
                     },
                     |cur_hir| {
                         let ok: fn(_) -> _ = Ok;
-
-                        let new_hir = regex_hir::rename_groups(cur_hir, id);
+                        let new_hir =
+                            regex_hir::rename_capture_groups(cur_hir, id);
                         Right(Right(Left(
                             "(?:"
                                 .chars()
@@ -300,104 +299,107 @@ type WithParsIter<I, P> = Either<
     >,
 >;
 
-/// Helper methods to work with [`Regex`]es [`Hir`].
+/// Helpers to work with [`Regex`]es [`Hir`].
 ///
 /// [`Hir`]: regex_syntax::hir::Hir
 /// [`Regex`]: regex::Regex
 mod regex_hir {
     use std::mem;
 
-    use regex_syntax::hir;
+    use regex_syntax::hir::{self, Hir, HirKind};
 
-    /// Checks whether [`Regex`]es [`Hir`] contains capturing groups.
+    /// Checks whether the given [`Regex`] [`Hir`] contains any capturing
+    /// groups.
     ///
-    /// [`Hir`]: hir::Hir
     /// [`Regex`]: regex::Regex
-    pub(super) fn has_capture_groups(hir: &hir::Hir) -> bool {
+    pub(super) fn has_capture_groups(hir: &Hir) -> bool {
         match hir.kind() {
-            hir::HirKind::Empty
-            | hir::HirKind::Literal(_)
-            | hir::HirKind::Class(_)
-            | hir::HirKind::Anchor(_)
-            | hir::HirKind::WordBoundary(_)
-            | hir::HirKind::Repetition(_)
-            | hir::HirKind::Group(hir::Group {
+            HirKind::Empty
+            | HirKind::Literal(_)
+            | HirKind::Class(_)
+            | HirKind::Anchor(_)
+            | HirKind::WordBoundary(_)
+            | HirKind::Repetition(_)
+            | HirKind::Group(hir::Group {
                 kind: hir::GroupKind::NonCapturing,
                 ..
             }) => false,
-            hir::HirKind::Group(hir::Group {
+            HirKind::Group(hir::Group {
                 kind:
                     hir::GroupKind::CaptureName { .. }
                     | hir::GroupKind::CaptureIndex(_),
                 ..
             }) => true,
-            hir::HirKind::Concat(inner) | hir::HirKind::Alternation(inner) => {
+            HirKind::Concat(inner) | HirKind::Alternation(inner) => {
                 inner.iter().any(has_capture_groups)
             }
         }
     }
 
-    /// Adds name `__{parameter_id}_{group_id}` to [`Regex`]es [`Hir`] capture
-    /// groups.
-    ///
-    /// [`Hir`]: hir::Hir
-    /// [`Regex`]: regex::Regex
-    pub(super) fn rename_groups(
-        hir: hir::Hir,
-        parameter_id: usize,
-    ) -> hir::Hir {
+    /// Renames capturing groups in the given [`Hir`] via
+    /// `__{parameter_id}_{group_id}` naming scheme.
+    pub(super) fn rename_capture_groups(hir: Hir, parameter_id: usize) -> Hir {
         rename_groups_inner(hir, parameter_id, &mut 0)
     }
 
-    /// Adds name `__{parameter_id}_{group_id}` to [`Regex`]es [`Hir`] capture
-    /// groups.
-    ///
-    /// [`Hir`]: hir::Hir
-    /// [`Regex`]: regex::Regex
+    /// Renames capturing groups in the given [`Hir`] via
+    /// `__{parameter_id}_{group_id}` naming scheme, using the given
+    /// `group_id_indexer`.
     fn rename_groups_inner(
-        hir: hir::Hir,
+        hir: Hir,
         parameter_id: usize,
-        group_id: &mut usize,
-    ) -> hir::Hir {
+        group_id_indexer: &mut usize,
+    ) -> Hir {
         match hir.into_kind() {
-            hir::HirKind::Empty => hir::Hir::empty(),
-            hir::HirKind::Literal(lit) => hir::Hir::literal(lit),
-            hir::HirKind::Class(cl) => hir::Hir::class(cl),
-            hir::HirKind::Anchor(anc) => hir::Hir::anchor(anc),
-            hir::HirKind::WordBoundary(bound) => hir::Hir::word_boundary(bound),
-            hir::HirKind::Repetition(rep) => hir::Hir::repetition(rep),
-            hir::HirKind::Group(mut group) => {
+            HirKind::Empty => Hir::empty(),
+            HirKind::Literal(lit) => Hir::literal(lit),
+            HirKind::Class(cl) => Hir::class(cl),
+            HirKind::Anchor(anc) => Hir::anchor(anc),
+            HirKind::WordBoundary(bound) => Hir::word_boundary(bound),
+            HirKind::Repetition(rep) => Hir::repetition(rep),
+            HirKind::Group(mut group) => {
                 match group.kind {
                     hir::GroupKind::CaptureIndex(index)
                     | hir::GroupKind::CaptureName { index, .. } => {
-                        // TODO: Use "{id}" syntax once MSRV bumps above 1.58.
                         group.kind = hir::GroupKind::CaptureName {
-                            name: format!("__{}_{}", parameter_id, *group_id),
+                            // TODO: Use "__{parameter_id}_{}" syntax once MSRV
+                            //       bumps above 1.58.
+                            name: format!(
+                                "__{}_{}",
+                                parameter_id, *group_id_indexer,
+                            ),
                             index,
                         };
-                        *group_id += 1;
+                        *group_id_indexer += 1;
                     }
                     hir::GroupKind::NonCapturing => {}
                 }
 
-                let inner_hir =
-                    mem::replace(group.hir.as_mut(), hir::Hir::empty());
+                let inner_hir = mem::replace(group.hir.as_mut(), Hir::empty());
                 drop(mem::replace(
                     group.hir.as_mut(),
-                    rename_groups_inner(inner_hir, parameter_id, group_id),
+                    rename_groups_inner(
+                        inner_hir,
+                        parameter_id,
+                        group_id_indexer,
+                    ),
                 ));
 
-                hir::Hir::group(group)
+                Hir::group(group)
             }
-            hir::HirKind::Concat(concat) => hir::Hir::concat(
+            HirKind::Concat(concat) => Hir::concat(
                 concat
                     .into_iter()
-                    .map(|h| rename_groups_inner(h, parameter_id, group_id))
+                    .map(|h| {
+                        rename_groups_inner(h, parameter_id, group_id_indexer)
+                    })
                     .collect(),
             ),
-            hir::HirKind::Alternation(alt) => hir::Hir::alternation(
+            HirKind::Alternation(alt) => Hir::alternation(
                 alt.into_iter()
-                    .map(|h| rename_groups_inner(h, parameter_id, group_id))
+                    .map(|h| {
+                        rename_groups_inner(h, parameter_id, group_id_indexer)
+                    })
                     .collect(),
             ),
         }

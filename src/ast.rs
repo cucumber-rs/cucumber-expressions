@@ -176,7 +176,7 @@ pub struct Parameter<Input> {
     #[deref_mut]
     pub input: Input,
 
-    /// ID of the [`Parameter`].
+    /// Unique ID of this [`Parameter`] in the parsed [`Expression`].
     #[as_ref(ignore)]
     pub id: usize,
 }

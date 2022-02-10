@@ -12,23 +12,25 @@
 //!
 //! [1]: https://github.com/cucumber/cucumber-expressions#custom-parameter-types
 
-use std::{collections::HashMap, fmt::Display, iter, vec};
+use std::{collections::HashMap, fmt::Display, iter, str, vec};
 
 use either::Either;
 use nom::{AsChar, InputIter};
 
-use crate::{Parameter, SingleExpression};
+use crate::{expand::OwnedChars, Parameter, SingleExpression};
 
 use super::{
-    Expression, IntoRegexCharIter, ParameterIter, SingleExpressionIter,
-    UnknownParameterError,
+    Expression, IntoRegexCharIter, ParameterError, ParameterIter,
+    SingleExpressionIter,
 };
 
 /// Parser of a [Cucumber Expressions][0] [AST] `Element` with [custom][1]
 /// `Parameters` in mind.
 ///
-/// Every [`Parameter`] should be represented by a single [`Regex`] capturing
-/// group.
+/// Usually, a [`Parameter`] is represented by a single [`Regex`] capturing
+/// group. In case there are multiple capturing groups, they will be named like
+/// `__{parameter_id}_{group_id}`. This is done to identify multiple capturing
+/// groups related to a single [`Parameter`].
 ///
 /// [`Regex`]: regex::Regex
 /// [0]: https://github.com/cucumber/cucumber-expressions#readme
@@ -60,7 +62,10 @@ pub trait Provider<Input> {
 
     /// Value matcher to be used in a [`Regex`].
     ///
-    /// Should be represented by a single [`Regex`] capturing group.
+    /// Usually, a [`Parameter`] is represented by a single [`Regex`] capturing
+    /// group. In case there are multiple capturing groups, they will be named
+    /// like `__{parameter_id}_{group_id}`. This is done to identify multiple
+    /// capturing groups related to a single [`Parameter`].
     ///
     /// [`Regex`]: regex::Regex
     type Value: InputIter<Item = Self::Item>;
@@ -126,7 +131,7 @@ where
 /// [`IntoRegexCharIter::Iter`] for [`WithCustom`]`<`[`Expression`]`>`.
 type ExpressionWithParsIter<I, P> = iter::Chain<
     iter::Chain<
-        iter::Once<Result<char, UnknownParameterError<I>>>,
+        iter::Once<Result<char, ParameterError<I>>>,
         iter::FlatMap<
             iter::Map<
                 iter::Zip<vec::IntoIter<SingleExpression<I>>, iter::Repeat<P>>,
@@ -140,7 +145,7 @@ type ExpressionWithParsIter<I, P> = iter::Chain<
             ) -> SingleExprWithParsIter<I, P>,
         >,
     >,
-    iter::Once<Result<char, UnknownParameterError<I>>>,
+    iter::Once<Result<char, ParameterError<I>>>,
 >;
 
 impl<Input, Pars> IntoRegexCharIter<Input>
@@ -191,17 +196,68 @@ where
     fn into_regex_char_iter(self) -> Self::Iter {
         use Either::{Left, Right};
 
-        let ok: fn(_) -> _ = |c: <P::Value as InputIter>::Item| Ok(c.as_char());
-        self.parameters.get(&self.element).map_or_else(
-            || Right(self.element.into_regex_char_iter()),
-            |v| {
-                Left(
-                    iter::once(Ok('('))
-                        .chain(v.iter_elements().map(ok))
-                        .chain(iter::once(Ok(')'))),
+        let id = self.element.id;
+
+        match self.parameters.get(&self.element) {
+            None => Right(Left(self.element.into_regex_char_iter())),
+            Some(v) => {
+                // We try to find '(' inside regex. If unsuccessfully, we can be
+                // sure that the regex has no groups, so we can skip parsing.
+                let parsed = v
+                    .iter_elements()
+                    .any(|c| c.as_char() == '(')
+                    .then(|| {
+                        let re = v
+                            .iter_elements()
+                            .map(AsChar::as_char)
+                            .collect::<String>();
+                        let hir = regex_syntax::Parser::new()
+                            .parse(&re)
+                            .map_err(|err| (self.element.input, re, err))?;
+                        Ok(regex_hir::has_capture_groups(&hir).then(|| hir))
+                    })
+                    .transpose();
+                let parsed = match parsed {
+                    Ok(hir) => hir.flatten(),
+                    Err((parameter, re, err)) => {
+                        return Left(iter::once(Err(
+                            ParameterError::RenameRegexGroup {
+                                parameter,
+                                re,
+                                err,
+                            },
+                        )));
+                    }
+                };
+
+                parsed.map_or_else(
+                    || {
+                        let ok: fn(_) -> _ =
+                            |c: <P::Value as InputIter>::Item| Ok(c.as_char());
+                        Right(Right(Right(
+                            iter::once(Ok('('))
+                                .chain(v.iter_elements().map(ok))
+                                .chain(iter::once(Ok(')'))),
+                        )))
+                    },
+                    |cur_hir| {
+                        let ok: fn(_) -> _ = Ok;
+                        let new_hir =
+                            regex_hir::rename_capture_groups(cur_hir, id);
+                        Right(Right(Left(
+                            "(?:"
+                                .chars()
+                                .map(ok)
+                                .chain(
+                                    OwnedChars::new(new_hir.to_string())
+                                        .map(ok),
+                                )
+                                .chain(iter::once(Ok(')'))),
+                        )))
+                    },
                 )
-            },
-        )
+            }
+        }
     }
 }
 
@@ -209,26 +265,152 @@ where
 //       https://github.com/rust-lang/rust/issues/63063
 /// [`IntoRegexCharIter::Iter`] for [`WithCustom`]`<`[`Parameter`]`>`.
 type WithParsIter<I, P> = Either<
-    iter::Chain<
-        iter::Chain<
-            iter::Once<Result<char, UnknownParameterError<I>>>,
-            iter::Map<
-                <<P as Provider<I>>::Value as InputIter>::IterElem,
-                fn(
-                    <<P as Provider<I>>::Value as InputIter>::Item,
-                ) -> Result<char, UnknownParameterError<I>>,
+    iter::Once<Result<char, ParameterError<I>>>,
+    Either<
+        ParameterIter<I>,
+        Either<
+            iter::Chain<
+                iter::Chain<
+                    iter::Map<
+                        str::Chars<'static>,
+                        fn(char) -> Result<char, ParameterError<I>>,
+                    >,
+                    iter::Map<
+                        OwnedChars,
+                        fn(char) -> Result<char, ParameterError<I>>,
+                    >,
+                >,
+                iter::Once<Result<char, ParameterError<I>>>,
+            >,
+            iter::Chain<
+                iter::Chain<
+                    iter::Once<Result<char, ParameterError<I>>>,
+                    iter::Map<
+                        <<P as Provider<I>>::Value as InputIter>::IterElem,
+                        fn(
+                            <<P as Provider<I>>::Value as InputIter>::Item,
+                        )
+                            -> Result<char, ParameterError<I>>,
+                    >,
+                >,
+                iter::Once<Result<char, ParameterError<I>>>,
             >,
         >,
-        iter::Once<Result<char, UnknownParameterError<I>>>,
     >,
-    ParameterIter<I>,
 >;
+
+/// Helpers to work with [`Regex`]es [`Hir`].
+///
+/// [`Hir`]: regex_syntax::hir::Hir
+/// [`Regex`]: regex::Regex
+mod regex_hir {
+    use std::mem;
+
+    use regex_syntax::hir::{self, Hir, HirKind};
+
+    /// Checks whether the given [`Regex`] [`Hir`] contains any capturing
+    /// groups.
+    ///
+    /// [`Regex`]: regex::Regex
+    pub(super) fn has_capture_groups(hir: &Hir) -> bool {
+        match hir.kind() {
+            HirKind::Empty
+            | HirKind::Literal(_)
+            | HirKind::Class(_)
+            | HirKind::Anchor(_)
+            | HirKind::WordBoundary(_)
+            | HirKind::Repetition(_)
+            | HirKind::Group(hir::Group {
+                kind: hir::GroupKind::NonCapturing,
+                ..
+            }) => false,
+            HirKind::Group(hir::Group {
+                kind:
+                    hir::GroupKind::CaptureName { .. }
+                    | hir::GroupKind::CaptureIndex(_),
+                ..
+            }) => true,
+            HirKind::Concat(inner) | HirKind::Alternation(inner) => {
+                inner.iter().any(has_capture_groups)
+            }
+        }
+    }
+
+    /// Renames capturing groups in the given [`Hir`] via
+    /// `__{parameter_id}_{group_id}` naming scheme.
+    pub(super) fn rename_capture_groups(hir: Hir, parameter_id: usize) -> Hir {
+        rename_groups_inner(hir, parameter_id, &mut 0)
+    }
+
+    /// Renames capturing groups in the given [`Hir`] via
+    /// `__{parameter_id}_{group_id}` naming scheme, using the given
+    /// `group_id_indexer`.
+    fn rename_groups_inner(
+        hir: Hir,
+        parameter_id: usize,
+        group_id_indexer: &mut usize,
+    ) -> Hir {
+        match hir.into_kind() {
+            HirKind::Empty => Hir::empty(),
+            HirKind::Literal(lit) => Hir::literal(lit),
+            HirKind::Class(cl) => Hir::class(cl),
+            HirKind::Anchor(anc) => Hir::anchor(anc),
+            HirKind::WordBoundary(bound) => Hir::word_boundary(bound),
+            HirKind::Repetition(rep) => Hir::repetition(rep),
+            HirKind::Group(mut group) => {
+                match group.kind {
+                    hir::GroupKind::CaptureIndex(index)
+                    | hir::GroupKind::CaptureName { index, .. } => {
+                        group.kind = hir::GroupKind::CaptureName {
+                            // TODO: Use "__{parameter_id}_{}" syntax once MSRV
+                            //       bumps above 1.58.
+                            name: format!(
+                                "__{}_{}",
+                                parameter_id, *group_id_indexer,
+                            ),
+                            index,
+                        };
+                        *group_id_indexer += 1;
+                    }
+                    hir::GroupKind::NonCapturing => {}
+                }
+
+                let inner_hir = mem::replace(group.hir.as_mut(), Hir::empty());
+                drop(mem::replace(
+                    group.hir.as_mut(),
+                    rename_groups_inner(
+                        inner_hir,
+                        parameter_id,
+                        group_id_indexer,
+                    ),
+                ));
+
+                Hir::group(group)
+            }
+            HirKind::Concat(concat) => Hir::concat(
+                concat
+                    .into_iter()
+                    .map(|h| {
+                        rename_groups_inner(h, parameter_id, group_id_indexer)
+                    })
+                    .collect(),
+            ),
+            HirKind::Alternation(alt) => Hir::alternation(
+                alt.into_iter()
+                    .map(|h| {
+                        rename_groups_inner(h, parameter_id, group_id_indexer)
+                    })
+                    .collect(),
+            ),
+        }
+    }
+}
 
 #[cfg(test)]
 mod spec {
     use crate::expand::Error;
 
-    use super::{Expression, HashMap, UnknownParameterError};
+    use super::{Expression, HashMap, ParameterError};
 
     #[test]
     fn custom_parameter() {
@@ -238,6 +420,21 @@ mod spec {
             .unwrap_or_else(|e| panic!("failed: {}", e));
 
         assert_eq!(expr.as_str(), "^(custom)$");
+    }
+
+    #[test]
+    fn custom_parameter_with_groups() {
+        let pars = HashMap::from([("custom", "\"(custom)\"|'(custom)'")]);
+        // TODO: Use "{e}" syntax once MSRV bumps above 1.58.
+        let expr =
+            Expression::regex_with_parameters("{custom} {custom}", &pars)
+                .unwrap_or_else(|e| panic!("failed: {}", e));
+
+        assert_eq!(
+            expr.as_str(),
+            "^(?:\"(?P<__0_0>custom)\"|'(?P<__0_1>custom)') \
+              (?:\"(?P<__1_0>custom)\"|'(?P<__1_1>custom)')$",
+        );
     }
 
     #[test]
@@ -256,10 +453,10 @@ mod spec {
 
         match Expression::regex_with_parameters("{custom}", &pars).unwrap_err()
         {
-            Error::Expansion(UnknownParameterError { not_found }) => {
+            Error::Expansion(ParameterError::NotFound(not_found)) => {
                 assert_eq!(*not_found, "custom");
             }
-            e @ (Error::Regex(_) | Error::Parsing(_)) => {
+            e @ (Error::Regex(_) | Error::Parsing(_) | Error::Expansion(_)) => {
                 // TODO: Use "{e}" syntax once MSRV bumps above 1.58.
                 panic!("wrong err: {}", e)
             }

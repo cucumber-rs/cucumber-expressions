@@ -150,23 +150,44 @@ where
     Parsing(parse::Error<Input>),
 
     /// Expansion error.
-    #[display(fmt = "Regex expansion failed: {}", _0)]
-    Expansion(UnknownParameterError<Input>),
+    #[display(fmt = "Failed to expand regex: {}", _0)]
+    Expansion(ParameterError<Input>),
 
     /// [`Regex`] creation error.
     #[display(fmt = "Regex creation failed: {}", _0)]
     Regex(regex::Error),
 }
 
-/// Error of an unknown [`Parameter`] being used in an [`Expression`].
-#[derive(Clone, Copy, Debug, Display, Error)]
-#[display(fmt = "Parameter '{}' not found.", not_found)]
-pub struct UnknownParameterError<Input>
+/// Possible [`Parameter`] errors being used in an [`Expression`].
+#[derive(Clone, Debug, Display, Error)]
+pub enum ParameterError<Input>
 where
     Input: fmt::Display,
 {
     /// [`Parameter`] not found.
-    pub not_found: Input,
+    #[display(fmt = "Parameter `{}` not found.", _0)]
+    NotFound(Input),
+
+    /// Failed to rename [`Regex`] capturing group.
+    #[display(
+        fmt = "Failed to rename capturing groups in regex `{}` of \
+               parameter `{}`: {}",
+        re,
+        parameter,
+        err
+    )]
+    RenameRegexGroup {
+        /// [`Parameter`] name.
+        parameter: Input,
+
+        /// [`Regex`] of the [`Parameter`].
+        re: String,
+
+        /// [`Error`] of parsing the [`Regex`] with renamed capturing groups.
+        ///
+        /// [`Error`]: regex_syntax::Error
+        err: regex_syntax::Error,
+    },
 }
 
 /// Expansion of a [Cucumber Expressions][0] [AST] element into a [`Regex`] by
@@ -177,7 +198,7 @@ where
 /// [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 pub trait IntoRegexCharIter<Input: fmt::Display> {
     /// Type of an [`Iterator`] performing the expansion.
-    type Iter: Iterator<Item = Result<char, UnknownParameterError<Input>>>;
+    type Iter: Iterator<Item = Result<char, ParameterError<Input>>>;
 
     /// Consumes this [AST] element returning an [`Iterator`] over [`char`]s
     /// transformable into a [`Regex`].
@@ -208,7 +229,7 @@ where
 /// [`IntoRegexCharIter::Iter`] for an [`Expression`].
 type ExpressionIter<Input> = iter::Chain<
     iter::Chain<
-        iter::Once<Result<char, UnknownParameterError<Input>>>,
+        iter::Once<Result<char, ParameterError<Input>>>,
         iter::FlatMap<
             vec::IntoIter<SingleExpression<Input>>,
             <SingleExpression<Input> as IntoRegexCharIter<Input>>::Iter,
@@ -218,7 +239,7 @@ type ExpressionIter<Input> = iter::Chain<
                 -> <SingleExpression<Input> as IntoRegexCharIter<Input>>::Iter,
         >,
     >,
-    iter::Once<Result<char, UnknownParameterError<Input>>>,
+    iter::Once<Result<char, ParameterError<Input>>>,
 >;
 
 impl<Input> IntoRegexCharIter<Input> for SingleExpression<Input>
@@ -307,7 +328,7 @@ type AlternationIter<I> = iter::Chain<
             >,
         >,
     >,
-    iter::Once<Result<char, UnknownParameterError<I>>>,
+    iter::Once<Result<char, ParameterError<I>>>,
 >;
 
 // TODO: Replace with TAIT, once stabilized:
@@ -319,7 +340,7 @@ type AlternationIterInner<I> = iter::Chain<
         <Alternative<I> as IntoRegexCharIter<I>>::Iter,
         fn(Alternative<I>) -> <Alternative<I> as IntoRegexCharIter<I>>::Iter,
     >,
-    iter::Once<Result<char, UnknownParameterError<I>>>,
+    iter::Once<Result<char, ParameterError<I>>>,
 >;
 
 impl<Input> IntoRegexCharIter<Input> for Alternative<Input>
@@ -397,7 +418,7 @@ type OptionalIter<Input> = iter::Map<
 >;
 
 /// Function pointer describing [`Ok`].
-type MapOkChar<Input> = fn(char) -> Result<char, UnknownParameterError<Input>>;
+type MapOkChar<Input> = fn(char) -> Result<char, ParameterError<Input>>;
 
 impl<Input> IntoRegexCharIter<Input> for Parameter<Input>
 where
@@ -413,9 +434,9 @@ where
             i.iter_elements().map(AsChar::as_char).eq(str.chars())
         };
 
-        if eq(&self.0, "int") {
-            Left(r#"((?:-?\d+)|(?:\d+))"#.chars().map(Ok))
-        } else if eq(&self.0, "float") {
+        if eq(&self.input, "int") {
+            Left(Left(r#"((?:-?\d+)|(?:\d+))"#.chars().map(Ok)))
+        } else if eq(&self.input, "float") {
             // Regex in other implementations has lookaheads. As `regex` crate
             // doesn't support them, we use `f32`/`f64` grammar instead:
             // https://doc.rust-lang.org/stable/std/primitive.f64.html#grammar
@@ -423,26 +444,31 @@ where
             // - supports `e` as exponent in addition to `E`
             // - supports trailing comma: `1.`
             // - supports `inf` and `NaN`
-            Left(
+            Left(Left(
                 "([+-]?(?:inf\
                          |NaN\
                          |(?:\\d+|\\d+\\.\\d*|\\d*\\.\\d+)(?:[eE][+-]?\\d+)?\
                        ))"
                 .chars()
                 .map(Ok),
-            )
-        } else if eq(&self.0, "word") {
-            Left(r#"([^\s]+)"#.chars().map(Ok))
-        } else if eq(&self.0, "string") {
-            Left(
-                r#"("(?:[^"\\]*(?:\\.[^"\\]*)*)"|'(?:[^'\\]*(?:\\.[^'\\]*)*)')"#
-                    .chars()
-                    .map(Ok),
-            )
-        } else if eq(&self.0, "") {
-            Left(r#"(.*)"#.chars().map(Ok))
+            ))
+        } else if eq(&self.input, "word") {
+            Left(Left(r#"([^\s]+)"#.chars().map(Ok)))
+        } else if eq(&self.input, "string") {
+            Left(Right(
+                OwnedChars::new(format!(
+                    "(?:\
+                      \"(?P<__{id}_0>[^\"\\\\]*(?:\\\\.[^\"\\\\]*)*)\"\
+                      |'(?P<__{id}_1>[^'\\\\]*(?:\\\\.[^'\\\\]*)*)'\
+                    )",
+                    id = self.id,
+                ))
+                .map(Ok),
+            ))
+        } else if eq(&self.input, "") {
+            Left(Left(r#"(.*)"#.chars().map(Ok)))
         } else {
-            Right(iter::once(Err(UnknownParameterError { not_found: self.0 })))
+            Right(iter::once(Err(ParameterError::NotFound(self.input))))
         }
     }
 }
@@ -451,11 +477,14 @@ where
 //       https://github.com/rust-lang/rust/issues/63063
 /// [`IntoRegexCharIter::Iter`] for a [`Parameter`].
 type ParameterIter<Input> = Either<
-    iter::Map<
-        str::Chars<'static>,
-        fn(char) -> Result<char, UnknownParameterError<Input>>,
+    Either<
+        iter::Map<
+            str::Chars<'static>,
+            fn(char) -> Result<char, ParameterError<Input>>,
+        >,
+        iter::Map<OwnedChars, fn(char) -> Result<char, ParameterError<Input>>>,
     >,
-    iter::Once<Result<char, UnknownParameterError<Input>>>,
+    iter::Once<Result<char, ParameterError<Input>>>,
 >;
 
 /// [`Iterator`] for skipping a last [`Item`].
@@ -510,6 +539,36 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         let next = self.iter.next();
         (self.iter.peek().is_some()).then(|| next).flatten()
+    }
+}
+
+// TODO: Make private, once TAIT stabilized:
+//       https://github.com/rust-lang/rust/issues/63063
+/// Like [`str::Chars`] [`Iterator`], but owns its [`String`].
+#[derive(Clone, Debug)]
+pub struct OwnedChars {
+    /// Iterated [`String`].
+    str: String,
+
+    /// Current char number.
+    cur: usize,
+}
+
+impl OwnedChars {
+    /// Creates a new [`OwnedChars`] [`Iterator`].
+    #[must_use]
+    pub const fn new(str: String) -> Self {
+        Self { str, cur: 0 }
+    }
+}
+
+impl Iterator for OwnedChars {
+    type Item = char;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let char = self.str.chars().nth(self.cur)?;
+        self.cur += 1;
+        Some(char)
     }
 }
 
@@ -586,7 +645,7 @@ where
 // Naming of test cases is preserved.
 #[cfg(test)]
 mod spec {
-    use super::{Error, Expression, UnknownParameterError};
+    use super::{Error, Expression, ParameterError};
 
     #[test]
     fn alternation_with_optional() {
@@ -699,7 +758,10 @@ mod spec {
 
         assert_eq!(
             expr.as_str(),
-            r#"^("(?:[^"\\]*(?:\\.[^"\\]*)*)"|'(?:[^'\\]*(?:\\.[^'\\]*)*)')$"#,
+            "^(?:\
+                \"(?P<__0_0>[^\"\\\\]*(?:\\\\.[^\"\\\\]*)*)\"\
+                |'(?P<__0_1>[^'\\\\]*(?:\\\\.[^'\\\\]*)*)'\
+             )$",
         );
         assert!(expr.is_match("\"\""));
         assert!(expr.is_match("''"));
@@ -708,6 +770,30 @@ mod spec {
         assert!(expr.is_match("\"with \\\" escaped\""));
         assert!(expr.is_match("'with \\' escaped'"));
         assert!(!expr.is_match("word"));
+    }
+
+    #[test]
+    fn multiple_string_parameters() {
+        // TODO: Use "{e}" syntax once MSRV bumps above 1.58.
+        let expr = Expression::regex("{string} {string}")
+            .unwrap_or_else(|e| panic!("failed: {}", e));
+
+        assert_eq!(
+            expr.as_str(),
+            "^(?:\
+                \"(?P<__0_0>[^\"\\\\]*(?:\\\\.[^\"\\\\]*)*)\"\
+                |'(?P<__0_1>[^'\\\\]*(?:\\\\.[^'\\\\]*)*)'\
+              ) (?:\
+                \"(?P<__1_0>[^\"\\\\]*(?:\\\\.[^\"\\\\]*)*)\"\
+                |'(?P<__1_1>[^'\\\\]*(?:\\\\.[^'\\\\]*)*)'\
+              )$",
+        );
+        assert!(expr.is_match("\"\" ''"));
+        assert!(expr.is_match("'' \"\""));
+        assert!(expr.is_match("'with \"' \"\""));
+        assert!(expr.is_match("\"with '\" '\"'"));
+        assert!(expr.is_match("\"with \\\" escaped\" 'with \\' escaped'"));
+        assert!(expr.is_match("'with \\' escaped' \"with \\\" escaped\""));
     }
 
     #[test]
@@ -747,10 +833,10 @@ mod spec {
     #[test]
     fn unknown_parameter() {
         match Expression::regex("{custom}").unwrap_err() {
-            Error::Expansion(UnknownParameterError { not_found }) => {
+            Error::Expansion(ParameterError::NotFound(not_found)) => {
                 assert_eq!(*not_found, "custom");
             }
-            e @ (Error::Parsing(_) | Error::Regex(_)) => {
+            e @ (Error::Parsing(_) | Error::Regex(_) | Error::Expansion(_)) => {
                 // TODO: Use "{e}" syntax once MSRV bumps above 1.58.
                 panic!("wrong err: {}", e);
             }

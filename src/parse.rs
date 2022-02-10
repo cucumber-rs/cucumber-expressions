@@ -133,6 +133,11 @@ where
 /// - [`UnescapedReservedCharacter`].
 /// - [`UnfinishedParameter`].
 ///
+/// # Indexing
+///
+/// The given `indexer` is incremented only if the parsed [`Parameter`] is
+/// returned.
+///
 /// [`Error`]: Err::Error
 /// [`Failure`]: Err::Failure
 /// [`EscapedNonReservedCharacter`]: Error::EscapedNonReservedCharacter
@@ -143,6 +148,7 @@ where
 /// [0]: crate#grammar
 pub fn parameter<'a, Input: 'a>(
     input: Input,
+    indexer: &mut usize,
 ) -> IResult<Input, Parameter<Input>, Error<Input>>
 where
     Input: Clone
@@ -164,13 +170,15 @@ where
         match inp.iter_elements().next().map(AsChar::as_char) {
             Some('{') => {
                 if let Ok((_, (par, ..))) = peek(tuple((
-                    parameter,
+                    // We don't use `indexer` here, because we do this parsing
+                    // for error reporting only.
+                    |i| parameter(i, &mut 0),
                     escaped_reserved_chars0(take_while(is_name)),
                     tag("}"),
                 )))(inp.clone())
                 {
                     return Error::NestedParameter(
-                        inp.take(par.0.input_len() + 2),
+                        inp.take(par.input.input_len() + 2),
                     )
                     .failure();
                 }
@@ -203,7 +211,14 @@ where
         fail(input.clone(), opening_brace.clone())
     })(input.clone())?;
 
-    Ok((input, Parameter(par_name)))
+    *indexer += 1;
+    Ok((
+        input,
+        Parameter {
+            input: par_name,
+            id: *indexer - 1,
+        },
+    ))
 }
 
 /// Parses an `optional` as defined in the [grammar spec][0].
@@ -291,9 +306,13 @@ where
                     .failure();
             }
             Some('{') => {
-                if let Ok((_, par)) = peek(parameter)(inp.clone()) {
+                // We use just `0` as `indexer` here, because we do this parsing
+                // for error reporting only.
+                if let Ok((_, par)) =
+                    peek(|i| parameter(i, &mut 0))(inp.clone())
+                {
                     return Error::ParameterInOptional(
-                        inp.take(par.0.input_len() + 2),
+                        inp.take(par.input.input_len() + 2),
                     )
                     .failure();
                 }
@@ -503,10 +522,16 @@ where
 ///
 /// Any [`Failure`] of [`alternation()`], [`optional()`] or [`parameter()`].
 ///
+/// # Indexing
+///
+/// The given `indexer` is incremented only if the parsed [`SingleExpression`]
+/// is returned and it represents a [`Parameter`].
+///
 /// [`Failure`]: Err::Failure
 /// [0]: crate#grammar
 pub fn single_expression<'a, Input: 'a>(
     input: Input,
+    indexer: &mut usize,
 ) -> IResult<Input, SingleExpression<Input>, Error<Input>>
 where
     Input: Clone
@@ -528,7 +553,7 @@ where
     alt((
         map(alternation, SingleExpression::Alternation),
         map(optional, SingleExpression::Optional),
-        map(parameter, SingleExpression::Parameter),
+        map(|i| parameter(i, indexer), SingleExpression::Parameter),
         map(
             verify(
                 escaped_reserved_chars0(take_while(is_without_whitespace)),
@@ -584,7 +609,11 @@ where
     Error<Input>: ParseError<Input>,
     for<'s> &'s str: FindToken<<Input as InputIter>::Item>,
 {
-    map(many0(single_expression), Expression)(input)
+    let mut indexer = 0;
+    map(
+        many0(move |i| single_expression(i, &mut indexer)),
+        Expression,
+    )(input)
 }
 
 /// Possible parsing errors.
@@ -813,13 +842,16 @@ mod spec {
 
         #[test]
         fn empty() {
-            assert_eq!(**unwrap_parser(parameter(Spanned::new("{}"))), "");
+            assert_eq!(
+                **unwrap_parser(parameter(Spanned::new("{}"), &mut 0)),
+                "",
+            );
         }
 
         #[test]
         fn named() {
             assert_eq!(
-                **unwrap_parser(parameter(Spanned::new("{string}"))),
+                **unwrap_parser(parameter(Spanned::new("{string}"), &mut 0)),
                 "string",
             );
         }
@@ -827,7 +859,10 @@ mod spec {
         #[test]
         fn named_with_spaces() {
             assert_eq!(
-                **unwrap_parser(parameter(Spanned::new("{with space}"))),
+                **unwrap_parser(parameter(
+                    Spanned::new("{with space}"),
+                    &mut 0,
+                )),
                 "with space",
             );
         }
@@ -835,7 +870,7 @@ mod spec {
         #[test]
         fn named_with_escaped() {
             assert_eq!(
-                **unwrap_parser(parameter(Spanned::new("{with \\{}"))),
+                **unwrap_parser(parameter(Spanned::new("{with \\{}"), &mut 0)),
                 "with \\{",
             );
         }
@@ -843,14 +878,17 @@ mod spec {
         #[test]
         fn named_with_closing_paren() {
             assert_eq!(
-                **unwrap_parser(parameter(Spanned::new("{with )}"))),
+                **unwrap_parser(parameter(Spanned::new("{with )}"), &mut 0)),
                 "with )",
             );
         }
 
         #[test]
         fn named_with_emoji() {
-            assert_eq!(**unwrap_parser(parameter(Spanned::new("{🦀}"))), "🦀");
+            assert_eq!(
+                **unwrap_parser(parameter(Spanned::new("{🦀}"), &mut 0)),
+                "🦀",
+            );
         }
 
         #[test]
@@ -858,14 +896,14 @@ mod spec {
             let span = Spanned::new("");
 
             assert_eq!(
-                parameter(span),
+                parameter(span, &mut 0),
                 Err(Err::Error(Error::Other(span, ErrorKind::Tag))),
             );
         }
 
         #[test]
         fn fails_on_escaped_non_reserved() {
-            let err = parameter(Spanned::new("{\\r}")).unwrap_err();
+            let err = parameter(Spanned::new("{\\r}"), &mut 0).unwrap_err();
 
             match err {
                 Err::Failure(Error::EscapedNonReservedCharacter(e)) => {
@@ -886,7 +924,8 @@ mod spec {
                 "{{nest}after}",
                 "{bef{nest}aft}",
             ] {
-                match parameter(Spanned::new(input)).expect_err("error") {
+                match parameter(Spanned::new(input), &mut 0).expect_err("error")
+                {
                     Err::Failure(Error::NestedParameter(e)) => {
                         // TODO: Use "{input}" syntax once MSRV bumps above
                         //       1.58.
@@ -906,7 +945,8 @@ mod spec {
                 "{(nest)after}",
                 "{bef(nest)aft}",
             ] {
-                match parameter(Spanned::new(input)).expect_err("error") {
+                match parameter(Spanned::new(input), &mut 0).expect_err("error")
+                {
                     Err::Failure(Error::OptionalInParameter(e)) => {
                         // TODO: Use "{input}" syntax once MSRV bumps above
                         //       1.58.
@@ -926,7 +966,8 @@ mod spec {
                 ("{{nest}", "{"),
                 ("{l/r}", "/"),
             ] {
-                match parameter(Spanned::new(input)).expect_err("error") {
+                match parameter(Spanned::new(input), &mut 0).expect_err("error")
+                {
                     Err::Failure(Error::UnescapedReservedCharacter(e)) => {
                         // TODO: Use "{input}" syntax once MSRV bumps above
                         //       1.58.
@@ -941,7 +982,8 @@ mod spec {
         #[test]
         fn fails_on_unfinished() {
             for input in ["{", "{name "] {
-                match parameter(Spanned::new(input)).expect_err("error") {
+                match parameter(Spanned::new(input), &mut 0).expect_err("error")
+                {
                     Err::Failure(Error::UnfinishedParameter(e)) => {
                         // TODO: Use "{input}" syntax once MSRV bumps above
                         //       1.58.
@@ -1508,6 +1550,47 @@ mod spec {
         };
 
         #[test]
+        fn parameters_ids() {
+            assert_ast_eq(
+                unwrap_parser(expression(Spanned::new("{string} {string}"))),
+                r#"Expression(
+                    [
+                        Parameter(
+                            Parameter {
+                                input: LocatedSpan {
+                                    offset: 1,
+                                    line: 1,
+                                    fragment: "string",
+                                    extra: (),
+                                },
+                                id: 0,
+                            },
+                        ),
+                        Whitespaces(
+                            LocatedSpan {
+                                offset: 8,
+                                line: 1,
+                                fragment: " ",
+                                extra: (),
+                            },
+                        ),
+                        Parameter(
+                            Parameter {
+                                input: LocatedSpan {
+                                    offset: 10,
+                                    line: 1,
+                                    fragment: "string",
+                                    extra: (),
+                                },
+                                id: 1,
+                            },
+                        ),
+                    ],
+                )"#,
+            )
+        }
+
+        #[test]
         fn allows_escaped_optional_parameter_types() {
             assert_ast_eq(
                 unwrap_parser(expression(Spanned::new("\\({int})"))),
@@ -1522,14 +1605,15 @@ mod spec {
                             },
                         ),
                         Parameter(
-                            Parameter(
-                                LocatedSpan {
+                            Parameter {
+                                input: LocatedSpan {
                                     offset: 3,
                                     line: 1,
                                     fragment: "int",
                                     extra: (),
                                 },
-                            ),
+                                id: 0,
+                            },
                         ),
                         Text(
                             LocatedSpan {
@@ -1577,14 +1661,15 @@ mod spec {
                             ),
                         ),
                         Parameter(
-                            Parameter(
-                                LocatedSpan {
+                            Parameter {
+                                input: LocatedSpan {
                                     offset: 4,
                                     line: 1,
                                     fragment: "int",
                                     extra: (),
                                 },
-                            ),
+                                id: 0,
+                            },
                         ),
                         Alternation(
                             Alternation(
@@ -1624,14 +1709,15 @@ mod spec {
                 r#"Expression(
                     [
                         Parameter(
-                            Parameter(
-                                LocatedSpan {
+                            Parameter {
+                                input: LocatedSpan {
                                     offset: 1,
                                     line: 1,
                                     fragment: "int",
                                     extra: (),
                                 },
-                            ),
+                                id: 0,
+                            },
                         ),
                         Alternation(
                             Alternation(
@@ -1942,14 +2028,15 @@ mod spec {
                 r#"Expression(
                     [
                         Parameter(
-                            Parameter(
-                                LocatedSpan {
+                            Parameter {
+                                input: LocatedSpan {
                                     offset: 1,
                                     line: 1,
                                     fragment: "",
                                     extra: (),
                                 },
-                            ),
+                                id: 0,
+                            },
                         ),
                     ],
                 )"#,
@@ -2136,14 +2223,15 @@ mod spec {
                 r#"Expression(
                     [
                         Parameter(
-                            Parameter(
-                                LocatedSpan {
+                            Parameter {
+                                input: LocatedSpan {
                                     offset: 1,
                                     line: 1,
                                     fragment: "int",
                                     extra: (),
                                 },
-                            ),
+                                id: 0,
+                            },
                         ),
                         Whitespaces(
                             LocatedSpan {

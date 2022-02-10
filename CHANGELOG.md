@@ -6,6 +6,25 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 
 
 
+## [0.2.0] · 2022-??-??
+[0.2.0]: /../../tree/v0.2.0
+
+[Diff](/../../compare/v0.1.2...v0.2.0) | [Milestone](/../../milestone/4)
+
+### BC Breaks
+
+- Added `id` field to `Parameter` AST struct. ([#8], [#7])
+
+### Added
+
+- Support of capturing groups inside `Parameter` regex. ([#8], [#7])
+
+[#7]: /../../issues/7
+[#8]: /../../pull/8
+
+
+
+
 ## [0.1.2] · 2022-01-11
 [0.1.2]: /../../tree/v0.1.2
 

@@ -7,7 +7,7 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 
 
 ## [0.2.1] · 2022-03-09
-[0.2.0]: /../../tree/v0.2.1
+[0.2.1]: /../../tree/v0.2.1
 
 [Diff](/../../compare/v0.2.0...v0.2.1)
 

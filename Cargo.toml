@@ -1,6 +1,6 @@
 [package]
 name = "cucumber-expressions"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 rust-version = "1.56"
 description = "Cucumber Expressions AST and parser."
@@ -32,7 +32,7 @@ nom_locate = "4.0"
 
 # "into-regex" feature dependencies
 either = { version = "1.6", optional = true }
-regex = { version = "1.5", optional = true }
+regex = { version = "1.5.5", optional = true }
 regex-syntax = { version = "0.6", optional = true }
 
 [workspace]

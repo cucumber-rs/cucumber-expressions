@@ -1,9 +1,10 @@
 [Cucumber Expressions] for Rust
 ===============================
 
+[![Crates.io](https://img.shields.io/crates/v/cucumber-expressions.svg?maxAge=2592000)](https://crates.io/crates/cucumber-expressions)
 [![Documentation](https://docs.rs/cucumber-expressions/badge.svg)](https://docs.rs/cucumber-expressions)
 [![CI](https://github.com/cucumber-rs/cucumber-expressions/workflows/CI/badge.svg?branch=main "CI")](https://github.com/cucumber-rs/cucumber-expressions/actions?query=workflow%3ACI+branch%3Amaster)
-[![Rust 1.56+](https://img.shields.io/badge/rustc-1.56+-lightgray.svg "Rust 1.56+")](https://blog.rust-lang.org/2021/10/21/Rust-1.56.0.html)
+[![Rust 1.60+](https://img.shields.io/badge/rustc-1.60+-lightgray.svg "Rust 1.60+")](https://blog.rust-lang.org/2022/04/07/Rust-1.60.0.html)
 [![Unsafe Forbidden](https://img.shields.io/badge/unsafe-forbidden-success.svg)](https://github.com/rust-secure-code/safety-dance)
 
 - [Changelog](https://github.com/cucumber-rs/cucumber-expressions/blob/main/CHANGELOG.md)

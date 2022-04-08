@@ -6,6 +6,18 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 
 
 
+## [0.3.0] · 2022-??-?? (unreleased)
+[0.3.0]: /../../tree/v0.3.0
+
+[Diff](/../../compare/v0.2.1...v0.3.0)
+
+### BC Breaks
+
+- Bumped up [MSRV] to 1.60 for more clever support of [Cargo feature]s.
+
+
+
+
 ## [0.2.1] · 2022-03-09
 [0.2.1]: /../../tree/v0.2.1
 
@@ -89,5 +101,7 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 
 [`Regex`]: https://docs.rs/regex
 
+[Cargo feature]: https://doc.rust-lang.org/cargo/reference/features.html
 [Cucumber Expressions]: https://github.com/cucumber/cucumber-expressions#readme
+[MSRV]: https://doc.rust-lang.org/cargo/reference/manifest.html#the-rust-version-field
 [Semantic Versioning 2.0.0]: https://semver.org

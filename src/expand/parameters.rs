@@ -362,11 +362,9 @@ mod regex_hir {
                     hir::GroupKind::CaptureIndex(index)
                     | hir::GroupKind::CaptureName { index, .. } => {
                         group.kind = hir::GroupKind::CaptureName {
-                            // TODO: Use "__{parameter_id}_{}" syntax once MSRV
-                            //       bumps above 1.58.
                             name: format!(
-                                "__{}_{}",
-                                parameter_id, *group_id_indexer,
+                                "__{parameter_id}_{}",
+                                *group_id_indexer,
                             ),
                             index,
                         };
@@ -415,9 +413,8 @@ mod spec {
     #[test]
     fn custom_parameter() {
         let pars = HashMap::from([("custom", "custom")]);
-        // TODO: Use "{e}" syntax once MSRV bumps above 1.58.
         let expr = Expression::regex_with_parameters("{custom}", &pars)
-            .unwrap_or_else(|e| panic!("failed: {}", e));
+            .unwrap_or_else(|e| panic!("failed: {e}"));
 
         assert_eq!(expr.as_str(), "^(custom)$");
     }
@@ -425,10 +422,9 @@ mod spec {
     #[test]
     fn custom_parameter_with_groups() {
         let pars = HashMap::from([("custom", "\"(custom)\"|'(custom)'")]);
-        // TODO: Use "{e}" syntax once MSRV bumps above 1.58.
         let expr =
             Expression::regex_with_parameters("{custom} {custom}", &pars)
-                .unwrap_or_else(|e| panic!("failed: {}", e));
+                .unwrap_or_else(|e| panic!("failed: {e}"));
 
         assert_eq!(
             expr.as_str(),
@@ -440,9 +436,8 @@ mod spec {
     #[test]
     fn default_parameter() {
         let pars = HashMap::from([("custom", "custom")]);
-        // TODO: Use "{e}" syntax once MSRV bumps above 1.58.
         let expr = Expression::regex_with_parameters("{}", &pars)
-            .unwrap_or_else(|e| panic!("failed: {}", e));
+            .unwrap_or_else(|e| panic!("failed: {e}"));
 
         assert_eq!(expr.as_str(), "^(.*)$");
     }
@@ -457,8 +452,7 @@ mod spec {
                 assert_eq!(*not_found, "custom");
             }
             e @ (Error::Regex(_) | Error::Parsing(_) | Error::Expansion(_)) => {
-                // TODO: Use "{e}" syntax once MSRV bumps above 1.58.
-                panic!("wrong err: {}", e)
+                panic!("wrong err: {e}")
             }
         }
     }

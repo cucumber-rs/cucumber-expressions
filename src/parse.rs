@@ -760,11 +760,10 @@ where
     Other(#[error(not(source))] Input, ErrorKind),
 
     /// Parsing requires more data.
-    // TODO: Use "{n}" syntax once MSRV bumps above 1.58.
     #[display(
         fmt = "{}",
         "match _0 {\
-            Needed::Size(n) => format!(\"Parsing requires {} bytes/chars\", n),\
+            Needed::Size(n) => format!(\"Parsing requires {n} bytes/chars\"),\
             Needed::Unknown => \"Parsing requires more data\".to_owned(),\
         }"
     )]
@@ -813,8 +812,7 @@ mod spec {
     /// [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
     fn assert_ast_eq(actual: impl fmt::Debug, expected: impl AsRef<str>) {
         assert_eq!(
-            // TODO: Use "{actual:#?}" syntax once MSRV bumps above 1.58.
-            format!("{:#?}", actual)
+            format!("{actual:#?}")
                 .lines()
                 .map(|line| line.trim_start().trim_end_matches('\n'))
                 .collect::<String>(),
@@ -830,9 +828,8 @@ mod spec {
     fn unwrap_parser<'s, T>(
         parser: IResult<Spanned<'s>, T, Error<Spanned<'s>>>,
     ) -> T {
-        // TODO: Use "{e}" syntax once MSRV bumps above 1.58.
         let (rest, par) =
-            parser.unwrap_or_else(|e| panic!("Expected Ok, found Err: {}", e));
+            parser.unwrap_or_else(|e| panic!("Expected Ok, found Err: {e}"));
         assert_eq!(*rest, "");
         par
     }
@@ -910,8 +907,7 @@ mod spec {
                     assert_eq!(*e, "\\r");
                 }
                 Err::Incomplete(_) | Err::Error(_) | Err::Failure(_) => {
-                    // TODO: Use "{err:?}" syntax once MSRV bumps above 1.58.
-                    panic!("wrong error: {:?}", err);
+                    panic!("wrong error: {err:?}");
                 }
             }
         }
@@ -927,12 +923,9 @@ mod spec {
                 match parameter(Spanned::new(input), &mut 0).expect_err("error")
                 {
                     Err::Failure(Error::NestedParameter(e)) => {
-                        // TODO: Use "{input}" syntax once MSRV bumps above
-                        //       1.58.
-                        assert_eq!(*e, "{nest}", "on input: {}", input);
+                        assert_eq!(*e, "{nest}", "on input: {input}");
                     }
-                    // TODO: Use "{e:?}" syntax once MSRV bumps above 1.58.
-                    e => panic!("wrong error: {:?}", e),
+                    e => panic!("wrong error: {e:?}"),
                 }
             }
         }
@@ -948,12 +941,9 @@ mod spec {
                 match parameter(Spanned::new(input), &mut 0).expect_err("error")
                 {
                     Err::Failure(Error::OptionalInParameter(e)) => {
-                        // TODO: Use "{input}" syntax once MSRV bumps above
-                        //       1.58.
-                        assert_eq!(*e, "(nest)", "on input: {}", input);
+                        assert_eq!(*e, "(nest)", "on input: {input}");
                     }
-                    // TODO: Use "{e:?}" syntax once MSRV bumps above 1.58.
-                    e => panic!("wrong error: {:?}", e),
+                    e => panic!("wrong error: {e:?}"),
                 }
             }
         }
@@ -969,12 +959,9 @@ mod spec {
                 match parameter(Spanned::new(input), &mut 0).expect_err("error")
                 {
                     Err::Failure(Error::UnescapedReservedCharacter(e)) => {
-                        // TODO: Use "{input}" syntax once MSRV bumps above
-                        //       1.58.
-                        assert_eq!(*e, expected, "on input: {}", input);
+                        assert_eq!(*e, expected, "on input: {input}");
                     }
-                    // TODO: Use "{e:?}" syntax once MSRV bumps above 1.58.
-                    e => panic!("wrong error: {:?}", e),
+                    e => panic!("wrong error: {e:?}"),
                 }
             }
         }
@@ -985,12 +972,9 @@ mod spec {
                 match parameter(Spanned::new(input), &mut 0).expect_err("error")
                 {
                     Err::Failure(Error::UnfinishedParameter(e)) => {
-                        // TODO: Use "{input}" syntax once MSRV bumps above
-                        //       1.58.
-                        assert_eq!(*e, "{", "on input: {}", input);
+                        assert_eq!(*e, "{", "on input: {input}");
                     }
-                    // TODO: Use "{e:?}" syntax once MSRV bumps above 1.58.
-                    e => panic!("wrong error: {:?}", e),
+                    e => panic!("wrong error: {e:?}"),
                 }
             }
         }
@@ -1055,8 +1039,7 @@ mod spec {
                     assert_eq!(*e, "()");
                 }
                 Err::Incomplete(_) | Err::Error(_) | Err::Failure(_) => {
-                    // TODO: Use "{err:?}" syntax once MSRV bumps above 1.58.
-                    panic!("wrong error: {:?}", err)
+                    panic!("wrong error: {err:?}")
                 }
             }
         }
@@ -1070,7 +1053,7 @@ mod spec {
                     assert_eq!(*e, "\\r");
                 }
                 Err::Incomplete(_) | Err::Error(_) | Err::Failure(_) => {
-                    panic!("wrong error: {:?}", err)
+                    panic!("wrong error: {err:?}")
                 }
             }
         }
@@ -1085,12 +1068,9 @@ mod spec {
             ] {
                 match optional(Spanned::new(input)).expect_err("error") {
                     Err::Failure(Error::NestedOptional(e)) => {
-                        // TODO: Use "{input}" syntax once MSRV bumps above
-                        //       1.58.
-                        assert_eq!(*e, "(nest)", "on input: {}", input);
+                        assert_eq!(*e, "(nest)", "on input: {input}");
                     }
-                    // TODO: Use "{e:?}" syntax once MSRV bumps above 1.58.
-                    e => panic!("wrong error: {:?}", e),
+                    e => panic!("wrong error: {e:?}"),
                 }
             }
         }
@@ -1105,12 +1085,9 @@ mod spec {
             ] {
                 match optional(Spanned::new(input)).expect_err("error") {
                     Err::Failure(Error::ParameterInOptional(e)) => {
-                        // TODO: Use "{input}" syntax once MSRV bumps above
-                        //       1.58.
-                        assert_eq!(*e, "{nest}", "on input: {}", input);
+                        assert_eq!(*e, "{nest}", "on input: {input}");
                     }
-                    // TODO: Use "{e:?}" syntax once MSRV bumps above 1.58.
-                    e => panic!("wrong error: {:?}", e),
+                    e => panic!("wrong error: {e:?}"),
                 }
             }
         }
@@ -1120,12 +1097,9 @@ mod spec {
             for input in ["(/)", "(bef/)", "(/aft)", "(bef/aft)"] {
                 match optional(Spanned::new(input)).expect_err("error") {
                     Err::Failure(Error::AlternationInOptional(e)) => {
-                        // TODO: Use "{input}" syntax once MSRV bumps above
-                        //       1.58.
-                        assert_eq!(*e, "/", "on input: {}", input);
+                        assert_eq!(*e, "/", "on input: {input}");
                     }
-                    // TODO: Use "{e:?}" syntax once MSRV bumps above 1.58.
-                    e => panic!("wrong error: {:?}", e),
+                    e => panic!("wrong error: {e:?}"),
                 }
             }
         }
@@ -1137,12 +1111,9 @@ mod spec {
             {
                 match optional(Spanned::new(input)).expect_err("error") {
                     Err::Failure(Error::UnescapedReservedCharacter(e)) => {
-                        // TODO: Use "{input}" syntax once MSRV bumps above
-                        //       1.58.
-                        assert_eq!(*e, expected, "on input: {}", input);
+                        assert_eq!(*e, expected, "on input: {input}");
                     }
-                    // TODO: Use "{e:?}" syntax once MSRV bumps above 1.58.
-                    e => panic!("wrong error: {:?}", e),
+                    e => panic!("wrong error: {e:?}"),
                 }
             }
         }
@@ -1152,12 +1123,9 @@ mod spec {
             for input in ["(", "(name "] {
                 match optional(Spanned::new(input)).expect_err("error") {
                     Err::Failure(Error::UnfinishedOptional(e)) => {
-                        // TODO: Use "{input}" syntax once MSRV bumps above
-                        //       1.58.
-                        assert_eq!(*e, "(", "on input: {}", input);
+                        assert_eq!(*e, "(", "on input: {input}");
                     }
-                    // TODO: Use "{e:?}" syntax once MSRV bumps above 1.58.
-                    e => panic!("wrong error: {:?}", e),
+                    e => panic!("wrong error: {e:?}"),
                 }
             }
         }
@@ -1174,9 +1142,7 @@ mod spec {
             for input in ["string", "🦀"] {
                 match unwrap_parser(alternative(Spanned::new(input))) {
                     Alternative::Text(t) => {
-                        // TODO: Use "{input}" syntax once MSRV bumps above
-                        //       1.58.
-                        assert_eq!(*t, input, "on input: {}", input);
+                        assert_eq!(*t, input, "on input: {input}");
                     }
                     _ => panic!("expected Alternative::Text"),
                 }
@@ -1188,9 +1154,7 @@ mod spec {
             for input in ["bef\\ ", "\\ aft", "bef\\ aft"] {
                 match unwrap_parser(alternative(Spanned::new(input))) {
                     Alternative::Text(t) => {
-                        // TODO: Use "{input}" syntax once MSRV bumps above
-                        //       1.58.
-                        assert_eq!(*t, input, "on input: {}", input);
+                        assert_eq!(*t, input, "on input: {input}");
                     }
                     _ => panic!("expected Alternative::Text"),
                 }
@@ -1231,8 +1195,7 @@ mod spec {
             match alternative(Spanned::new("")).unwrap_err() {
                 Err::Error(Error::Other(_, ErrorKind::Alt)) => {}
                 e @ (Err::Incomplete(_) | Err::Error(_) | Err::Failure(_)) => {
-                    // TODO: Use "{e:?}" syntax once MSRV bumps above 1.58.
-                    panic!("wrong error: {:?}", e);
+                    panic!("wrong error: {e:?}");
                 }
             }
         }
@@ -1242,12 +1205,9 @@ mod spec {
             for input in ["(", "(opt"] {
                 match alternative(Spanned::new(input)).unwrap_err() {
                     Err::Failure(Error::UnfinishedOptional(e)) => {
-                        // TODO: Use "{input}" syntax once MSRV bumps above
-                        //       1.58.
-                        assert_eq!(*e, "(", "on input: {}", input);
+                        assert_eq!(*e, "(", "on input: {input}");
                     }
-                    // TODO: Use "{e:?}" syntax once MSRV bumps above 1.58.
-                    e => panic!("wrong error: {:?}", e),
+                    e => panic!("wrong error: {e:?}"),
                 }
             }
         }
@@ -1257,12 +1217,9 @@ mod spec {
             for input in ["(\\r)", "\\r"] {
                 match alternative(Spanned::new(input)).unwrap_err() {
                     Err::Failure(Error::EscapedNonReservedCharacter(e)) => {
-                        // TODO: Use "{input}" syntax once MSRV bumps above
-                        //       1.58.
-                        assert_eq!(*e, "\\r", "on input: {}", input);
+                        assert_eq!(*e, "\\r", "on input: {input}");
                     }
-                    // TODO: Use "{e:?}" syntax once MSRV bumps above 1.58.
-                    e => panic!("wrong error: {:?}", e),
+                    e => panic!("wrong error: {e:?}"),
                 }
             }
         }
@@ -1499,12 +1456,9 @@ mod spec {
             ] {
                 match alternation(Spanned::new(input)).unwrap_err() {
                     Err::Error(Error::Other(_, kind)) => {
-                        // TODO: Use "{input}" syntax once MSRV bumps above
-                        //       1.58.
-                        assert_eq!(kind, expected, "on input: {}", input);
+                        assert_eq!(kind, expected, "on input: {input}");
                     }
-                    // TODO: Use "{e:?}" syntax once MSRV bumps above 1.58.
-                    e => panic!("wrong error: {:?}", e),
+                    e => panic!("wrong error: {e:?}"),
                 }
             }
         }
@@ -1514,12 +1468,9 @@ mod spec {
             for input in ["/", "l/", "/r", "l/m/", "l//r", "/m/r"] {
                 match alternation(Spanned::new(input)).unwrap_err() {
                     Err::Failure(Error::EmptyAlternation(e)) => {
-                        // TODO: Use "{input}" syntax once MSRV bumps above
-                        //       1.58.
-                        assert_eq!(*e, "/", "on input: {}", input);
+                        assert_eq!(*e, "/", "on input: {input}");
                     }
-                    // TODO: Use "{e:?}" syntax once MSRV bumps above 1.58.
-                    e => panic!("wrong error: {:?}", e),
+                    e => panic!("wrong error: {e:?}"),
                 }
             }
         }
@@ -1531,12 +1482,9 @@ mod spec {
             {
                 match alternation(Spanned::new(input)).unwrap_err() {
                     Err::Failure(Error::OnlyOptionalInAlternation(e)) => {
-                        // TODO: Use "{input}" syntax once MSRV bumps above
-                        //       1.58.
-                        assert_eq!(*e, input, "on input: {}", input);
+                        assert_eq!(*e, input, "on input: {input}");
                     }
-                    // TODO: Use "{e:?}" syntax once MSRV bumps above 1.58.
-                    e => panic!("wrong error: {:?}", e),
+                    e => panic!("wrong error: {e:?}"),
                 }
             }
         }
@@ -1779,8 +1727,7 @@ mod spec {
                     assert_eq!(*s, "/");
                 }
                 e @ (Err::Incomplete(_) | Err::Error(_) | Err::Failure(_)) => {
-                    // TODO: Use "{e:?}" syntax once MSRV bumps above 1.58.
-                    panic!("wrong error: {:?}", e);
+                    panic!("wrong error: {e:?}");
                 }
             }
         }
@@ -1794,8 +1741,7 @@ mod spec {
                     assert_eq!(*s, "/");
                 }
                 e @ (Err::Incomplete(_) | Err::Error(_) | Err::Failure(_)) => {
-                    // TODO: Use "{e:?}" syntax once MSRV bumps above 1.58.
-                    panic!("wrong error: {:?}", e);
+                    panic!("wrong error: {e:?}");
                 }
             }
         }
@@ -1811,8 +1757,7 @@ mod spec {
                     assert_eq!(*s, "(brown)/black");
                 }
                 e @ (Err::Incomplete(_) | Err::Error(_) | Err::Failure(_)) => {
-                    // TODO: Use "{e:?}" syntax once MSRV bumps above 1.58.
-                    panic!("wrong error: {:?}", e);
+                    panic!("wrong error: {e:?}");
                 }
             }
         }
@@ -1826,8 +1771,7 @@ mod spec {
                     assert_eq!(*s, "/");
                 }
                 e @ (Err::Incomplete(_) | Err::Error(_) | Err::Failure(_)) => {
-                    // TODO: Use "{e:?}" syntax once MSRV bumps above 1.58.
-                    panic!("wrong error: {:?}", e);
+                    panic!("wrong error: {e:?}");
                 }
             }
         }
@@ -1841,8 +1785,7 @@ mod spec {
                     assert_eq!(*s, "/");
                 }
                 e @ (Err::Incomplete(_) | Err::Error(_) | Err::Failure(_)) => {
-                    // TODO: Use "{e:?}" syntax once MSRV bumps above 1.58.
-                    panic!("wrong error: {:?}", e);
+                    panic!("wrong error: {e:?}");
                 }
             }
         }
@@ -1854,8 +1797,7 @@ mod spec {
                     assert_eq!(*s, "()");
                 }
                 e @ (Err::Incomplete(_) | Err::Error(_) | Err::Failure(_)) => {
-                    // TODO: Use "{e:?}" syntax once MSRV bumps above 1.58.
-                    panic!("wrong error: {:?}", e);
+                    panic!("wrong error: {e:?}");
                 }
             }
         }
@@ -1867,8 +1809,7 @@ mod spec {
                     assert_eq!(*s, "(b)");
                 }
                 e @ (Err::Incomplete(_) | Err::Error(_) | Err::Failure(_)) => {
-                    // TODO: Use "{e:?}" syntax once MSRV bumps above 1.58.
-                    panic!("wrong error: {:?}", e);
+                    panic!("wrong error: {e:?}");
                 }
             }
         }
@@ -1880,8 +1821,7 @@ mod spec {
                     assert_eq!(*s, "{int}");
                 }
                 e @ (Err::Incomplete(_) | Err::Error(_) | Err::Failure(_)) => {
-                    // TODO: Use "{e:?}" syntax once MSRV bumps above 1.58.
-                    panic!("wrong error: {:?}", e);
+                    panic!("wrong error: {e:?}");
                 }
             }
         }
@@ -1893,8 +1833,7 @@ mod spec {
                     assert_eq!(*s, "(string)");
                 }
                 e @ (Err::Incomplete(_) | Err::Error(_) | Err::Failure(_)) => {
-                    // TODO: Use "{e:?}" syntax once MSRV bumps above 1.58.
-                    panic!("wrong error: {:?}", e);
+                    panic!("wrong error: {e:?}");
                 }
             }
         }
@@ -1910,8 +1849,7 @@ mod spec {
                     assert_eq!(*s, "{");
                 }
                 e @ (Err::Incomplete(_) | Err::Error(_) | Err::Failure(_)) => {
-                    // TODO: Use "{e:?}" syntax once MSRV bumps above 1.58.
-                    panic!("wrong error: {:?}", e);
+                    panic!("wrong error: {e:?}");
                 }
             }
         }
@@ -1927,8 +1865,7 @@ mod spec {
                     assert_eq!(*s, "{string}");
                 }
                 e @ (Err::Incomplete(_) | Err::Error(_) | Err::Failure(_)) => {
-                    // TODO: Use "{e:?}" syntax once MSRV bumps above 1.58.
-                    panic!("wrong error: {:?}", e);
+                    panic!("wrong error: {e:?}");
                 }
             }
         }
@@ -1944,8 +1881,7 @@ mod spec {
                     assert_eq!(*s, "(");
                 }
                 e @ (Err::Incomplete(_) | Err::Error(_) | Err::Failure(_)) => {
-                    // TODO: Use "{e:?}" syntax once MSRV bumps above 1.58.
-                    panic!("wrong error: {:?}", e);
+                    panic!("wrong error: {e:?}");
                 }
             }
         }
@@ -2297,8 +2233,7 @@ mod spec {
             match expression(Spanned::new("\\")).unwrap_err() {
                 Err::Failure(Error::EscapedEndOfLine(_)) => {}
                 e @ (Err::Incomplete(_) | Err::Error(_) | Err::Failure(_)) => {
-                    // TODO: Use "{err}" syntax once MSRV bumps above 1.58.
-                    panic!("wrong err: {}", e);
+                    panic!("wrong err: {e}");
                 }
             }
         }

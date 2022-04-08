@@ -649,18 +649,16 @@ mod spec {
 
     #[test]
     fn alternation_with_optional() {
-        // TODO: Use "{e}" syntax once MSRV bumps above 1.58.
         let expr = Expression::regex("a/b(c)")
-            .unwrap_or_else(|e| panic!("failed: {}", e));
+            .unwrap_or_else(|e| panic!("failed: {e}"));
 
         assert_eq!(expr.as_str(), "^(?:a|b(?:c)?)$");
     }
 
     #[test]
     fn alternation() {
-        // TODO: Use "{e}" syntax once MSRV bumps above 1.58.
         let expr = Expression::regex("a/b c/d/e")
-            .unwrap_or_else(|e| panic!("failed: {}", e));
+            .unwrap_or_else(|e| panic!("failed: {e}"));
 
         assert_eq!(expr.as_str(), "^(?:a|b) (?:c|d|e)$");
         assert!(expr.is_match("a c"));
@@ -672,9 +670,8 @@ mod spec {
 
     #[test]
     fn empty() {
-        // TODO: Use "{e}" syntax once MSRV bumps above 1.58.
         let expr =
-            Expression::regex("").unwrap_or_else(|e| panic!("failed: {}", e));
+            Expression::regex("").unwrap_or_else(|e| panic!("failed: {e}"));
 
         assert_eq!(expr.as_str(), "^$");
         assert!(expr.is_match(""));
@@ -683,9 +680,8 @@ mod spec {
 
     #[test]
     fn escape_regex_characters() {
-        // TODO: Use "{e}" syntax once MSRV bumps above 1.58.
         let expr = Expression::regex(r"^$[]\()\{}\\.|?*+")
-            .unwrap_or_else(|e| panic!("failed: {}", e));
+            .unwrap_or_else(|e| panic!("failed: {e}"));
 
         assert_eq!(expr.as_str(), r"^\^\$\[\]\(\)\{\}\\\.\|\?\*\+$");
         assert!(expr.is_match("^$[](){}\\.|?*+"));
@@ -693,9 +689,8 @@ mod spec {
 
     #[test]
     fn optional() {
-        // TODO: Use "{e}" syntax once MSRV bumps above 1.58.
-        let expr = Expression::regex("(a)")
-            .unwrap_or_else(|e| panic!("failed: {}", e));
+        let expr =
+            Expression::regex("(a)").unwrap_or_else(|e| panic!("failed: {e}"));
 
         assert_eq!(expr.as_str(), "^(?:a)?$");
         assert!(expr.is_match(""));
@@ -705,9 +700,8 @@ mod spec {
 
     #[test]
     fn parameter_int() {
-        // TODO: Use "{e}" syntax once MSRV bumps above 1.58.
         let expr = Expression::regex("{int}")
-            .unwrap_or_else(|e| panic!("failed: {}", e));
+            .unwrap_or_else(|e| panic!("failed: {e}"));
 
         assert_eq!(expr.as_str(), "^((?:-?\\d+)|(?:\\d+))$");
         assert!(expr.is_match("123"));
@@ -718,9 +712,8 @@ mod spec {
 
     #[test]
     fn parameter_float() {
-        // TODO: Use "{e}" syntax once MSRV bumps above 1.58.
         let expr = Expression::regex("{float}")
-            .unwrap_or_else(|e| panic!("failed: {}", e));
+            .unwrap_or_else(|e| panic!("failed: {e}"));
 
         assert_eq!(
             expr.as_str(),
@@ -740,9 +733,8 @@ mod spec {
 
     #[test]
     fn parameter_word() {
-        // TODO: Use "{e}" syntax once MSRV bumps above 1.58.
         let expr = Expression::regex("{word}")
-            .unwrap_or_else(|e| panic!("failed: {}", e));
+            .unwrap_or_else(|e| panic!("failed: {e}"));
 
         assert_eq!(expr.as_str(), "^([^\\s]+)$");
         assert!(expr.is_match("test"));
@@ -752,9 +744,8 @@ mod spec {
 
     #[test]
     fn parameter_string() {
-        // TODO: Use "{e}" syntax once MSRV bumps above 1.58.
         let expr = Expression::regex("{string}")
-            .unwrap_or_else(|e| panic!("failed: {}", e));
+            .unwrap_or_else(|e| panic!("failed: {e}"));
 
         assert_eq!(
             expr.as_str(),
@@ -774,9 +765,8 @@ mod spec {
 
     #[test]
     fn multiple_string_parameters() {
-        // TODO: Use "{e}" syntax once MSRV bumps above 1.58.
         let expr = Expression::regex("{string} {string}")
-            .unwrap_or_else(|e| panic!("failed: {}", e));
+            .unwrap_or_else(|e| panic!("failed: {e}"));
 
         assert_eq!(
             expr.as_str(),
@@ -798,9 +788,8 @@ mod spec {
 
     #[test]
     fn parameter_all() {
-        // TODO: Use "{e}" syntax once MSRV bumps above 1.58.
         let expr =
-            Expression::regex("{}").unwrap_or_else(|e| panic!("failed: {}", e));
+            Expression::regex("{}").unwrap_or_else(|e| panic!("failed: {e}"));
 
         assert_eq!(expr.as_str(), "^(.*)$");
         assert!(expr.is_match("anything matches"));
@@ -808,9 +797,8 @@ mod spec {
 
     #[test]
     fn text() {
-        // TODO: Use "{e}" syntax once MSRV bumps above 1.58.
         let expr =
-            Expression::regex("a").unwrap_or_else(|e| panic!("failed: {}", e));
+            Expression::regex("a").unwrap_or_else(|e| panic!("failed: {e}"));
 
         assert_eq!(expr.as_str(), "^a$");
         assert!(expr.is_match("a"));
@@ -820,9 +808,8 @@ mod spec {
 
     #[test]
     fn unicode() {
-        // TODO: Use "{e}" syntax once MSRV bumps above 1.58.
         let expr = Expression::regex("Привет, Мир(ы)!")
-            .unwrap_or_else(|e| panic!("failed: {}", e));
+            .unwrap_or_else(|e| panic!("failed: {e}"));
 
         assert_eq!(expr.as_str(), "^Привет, Мир(?:ы)?!$");
         assert!(expr.is_match("Привет, Мир!"));
@@ -837,8 +824,7 @@ mod spec {
                 assert_eq!(*not_found, "custom");
             }
             e @ (Error::Parsing(_) | Error::Regex(_) | Error::Expansion(_)) => {
-                // TODO: Use "{e}" syntax once MSRV bumps above 1.58.
-                panic!("wrong err: {}", e);
+                panic!("wrong err: {e}");
             }
         }
     }

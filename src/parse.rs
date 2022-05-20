@@ -775,7 +775,7 @@ impl<Input: Display> Error<Input> {
     ///
     /// [`Error`]: enum@Error
     /// [`Failure`]: Err::Failure
-    fn failure(self) -> Err<Self> {
+    const fn failure(self) -> Err<Self> {
         Err::Failure(self)
     }
 }

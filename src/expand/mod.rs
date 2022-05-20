@@ -125,7 +125,7 @@ impl<'s> Expression<Spanned<'s>> {
     /// `parameters` in addition to [default ones][1].
     ///
     /// [1]: https://github.com/cucumber/cucumber-expressions#parameter-types
-    pub fn with_parameters<P: ParametersProvider<Spanned<'s>>>(
+    pub const fn with_parameters<P: ParametersProvider<Spanned<'s>>>(
         self,
         parameters: P,
     ) -> WithCustomParameters<Self, P> {

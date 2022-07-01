@@ -214,7 +214,7 @@ where
                         let hir = regex_syntax::Parser::new()
                             .parse(&re)
                             .map_err(|err| (self.element.input, re, err))?;
-                        Ok(regex_hir::has_capture_groups(&hir).then(|| hir))
+                        Ok(regex_hir::has_capture_groups(&hir).then_some(hir))
                     })
                     .transpose();
                 let parsed = match parsed {

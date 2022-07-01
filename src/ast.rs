@@ -44,7 +44,7 @@ impl<'s> TryFrom<&'s str> for Expression<Spanned<'s>> {
             })
             .and_then(|(rest, parsed)| {
                 rest.is_empty()
-                    .then(|| parsed)
+                    .then_some(parsed)
                     .ok_or(parse::Error::Other(rest, ErrorKind::Verify))
             })
     }

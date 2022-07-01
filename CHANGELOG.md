@@ -13,7 +13,7 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 
 ### BC Breaks
 
-- Bumped up [MSRV] to 1.61 for more clever support of [Cargo feature]s.
+- Bumped up [MSRV] to 1.62 for more clever support of [Cargo feature]s.
 
 
 

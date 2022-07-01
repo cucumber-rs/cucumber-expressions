@@ -538,7 +538,7 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         let next = self.iter.next();
-        (self.iter.peek().is_some()).then(|| next).flatten()
+        (self.iter.peek().is_some()).then_some(next).flatten()
     }
 }
 

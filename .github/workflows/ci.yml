@@ -21,9 +21,6 @@ jobs:
   ##########################
 
   clippy:
-    if: ${{ github.ref == 'refs/heads/main'
-            || startsWith(github.ref, 'refs/tags/v')
-            || !contains(github.event.head_commit.message, '[skip ci]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -36,9 +33,6 @@ jobs:
       - run: make cargo.lint
 
   rustfmt:
-    if: ${{ github.ref == 'refs/heads/main'
-            || startsWith(github.ref, 'refs/tags/v')
-            || !contains(github.event.head_commit.message, '[skip ci]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -58,9 +52,6 @@ jobs:
   ###########
 
   feature:
-    if: ${{ github.ref == 'refs/heads/main'
-            || startsWith(github.ref, 'refs/tags/v')
-            || !contains(github.event.head_commit.message, '[skip ci]') }}
     strategy:
       fail-fast: false
       matrix:
@@ -91,9 +82,6 @@ jobs:
 
   fuzz:
     name: Fuzzing
-    if: ${{ github.ref == 'refs/heads/main'
-            || startsWith(github.ref, 'refs/tags/v')
-            || !contains(github.event.head_commit.message, '[skip ci]') }}
     strategy:
       fail-fast: false
       matrix:
@@ -118,9 +106,6 @@ jobs:
 
   msrv:
     name: MSRV
-    if: ${{ github.ref == 'refs/heads/main'
-            || startsWith(github.ref, 'refs/tags/v')
-            || !contains(github.event.head_commit.message, '[skip ci]') }}
     strategy:
       fail-fast: false
       matrix:
@@ -147,9 +132,6 @@ jobs:
       - run: make test.cargo
 
   test:
-    if: ${{ github.ref == 'refs/heads/main'
-            || startsWith(github.ref, 'refs/tags/v')
-            || !contains(github.event.head_commit.message, '[skip ci]') }}
     strategy:
       fail-fast: false
       matrix:
@@ -179,9 +161,6 @@ jobs:
   #################
 
   rustdoc:
-    if: ${{ github.ref == 'refs/heads/main'
-            || startsWith(github.ref, 'refs/tags/v')
-            || !contains(github.event.head_commit.message, '[skip ci]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3

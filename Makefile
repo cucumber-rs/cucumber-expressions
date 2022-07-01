@@ -40,14 +40,16 @@ test: test.cargo
 # Generate crate documentation from Rust sources.
 #
 # Usage:
-#	make cargo.doc [private=(yes|no)]
+#	make cargo.doc [private=(yes|no)] [docsrs=(no|yes)]
 #	               [open=(yes|no)] [clean=(no|yes)]
 
 cargo.doc:
 ifeq ($(clean),yes)
 	@rm -rf target/doc/
 endif
-	cargo doc -p cucumber-expressions --all-features \
+	$(if $(call eq,$(docsrs),yes),RUSTDOCFLAGS='--cfg docsrs',) \
+	cargo $(if $(call eq,$(docsrs),yes),+nightly,) doc -p cucumber-expressions \
+		--all-features \
 		$(if $(call eq,$(private),no),,--document-private-items) \
 		$(if $(call eq,$(open),no),,--open)
 

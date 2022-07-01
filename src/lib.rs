@@ -111,7 +111,7 @@
     unused_results,
     variant_size_differences
 )]
-#![cfg_attr(docsrs, feature(doc_cfg))]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 pub mod ast;
 mod combinator;

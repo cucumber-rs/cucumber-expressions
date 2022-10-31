@@ -14,6 +14,8 @@ Rust implementation of [Cucumber Expressions].
 This crate provides [AST] parser, and [`Regex`] expansion of [Cucumber Expressions].
 
 ```rust
+# // `Regex` expansion requires `into-regex` feature.
+# #[cfg(feature = "into-regex")] {
 use cucumber_expressions::Expression;
 
 let re = Expression::regex("I have {int} cucumbers in my belly").unwrap();
@@ -21,6 +23,7 @@ let caps = re.captures("I have 42 cucumbers in my belly").unwrap();
 
 assert_eq!(&caps[0], "I have 42 cucumbers in my belly");
 assert_eq!(&caps[1], "42");
+# }
 ```
 
 

@@ -24,9 +24,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@v1
         with:
-          profile: minimal
           toolchain: stable
           components: clippy
 
@@ -36,9 +35,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@v1
         with:
-          profile: minimal
           toolchain: nightly
           components: rustfmt
 
@@ -61,15 +59,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@v1
         with:
-          profile: minimal
-          toolchain: nightly
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
           toolchain: stable
-          override: true
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: nightly
 
       - run: cargo +nightly update -Z minimal-versions
 
@@ -81,7 +76,6 @@ jobs:
           RUSTFLAGS: -D warnings
 
   fuzz:
-    name: Fuzzing
     strategy:
       fail-fast: false
       matrix:
@@ -94,9 +88,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@v1
         with:
-          profile: minimal
           toolchain: nightly
 
       - run: cargo install cargo-fuzz
@@ -117,15 +110,13 @@ jobs:
     runs-on: ${{ matrix.os }}-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@v1
         with:
-          profile: minimal
-          toolchain: nightly
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
           toolchain: ${{ matrix.msrv }}
-          override: true
+      - run: rustup default ${{ matrix.msrv }}
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: nightly
 
       - run: cargo +nightly update -Z minimal-versions
 
@@ -146,13 +137,13 @@ jobs:
     runs-on: ${{ matrix.os }}-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@v1
         with:
-          profile: minimal
           toolchain: ${{ matrix.toolchain }}
-          override: true
+      - run: rustup default ${{ matrix.toolchain }}
 
       - run: make test.cargo
+
 
 
 
@@ -164,9 +155,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@v1
         with:
-          profile: minimal
           toolchain: nightly
 
       - run: make cargo.doc private=yes docsrs=yes open=no
@@ -179,15 +169,14 @@ jobs:
   #############
 
   release-crate:
-    name: Release on crates.io
+    name: release on crates.io
     if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     needs: ["release-github"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@v1
         with:
-          profile: minimal
           toolchain: stable
 
       - name: Publish `cucumber-expressions` crate
@@ -195,7 +184,7 @@ jobs:
                            --token ${{ secrets.CRATESIO_TOKEN }}
 
   release-github:
-    name: Release on GitHub
+    name: release on GitHub
     if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     needs:
       - clippy

@@ -186,7 +186,7 @@ where
         /// [`Error`] of parsing the [`Regex`] with renamed capturing groups.
         ///
         /// [`Error`]: regex_syntax::Error
-        err: regex_syntax::Error,
+        err: Box<regex_syntax::Error>,
     },
 }
 

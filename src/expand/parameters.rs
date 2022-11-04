@@ -224,7 +224,7 @@ where
                             ParameterError::RenameRegexGroup {
                                 parameter,
                                 re,
-                                err,
+                                err: Box::new(err),
                             },
                         )));
                     }

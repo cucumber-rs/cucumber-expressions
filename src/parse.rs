@@ -582,7 +582,7 @@ where
 /// text
 /// ```
 ///
-/// > __NOTE:__ Empty string is matched too.
+/// > **NOTE:** Empty string is matched too.
 ///
 /// # Errors
 ///

@@ -94,8 +94,7 @@ jobs:
 
       - run: cargo install cargo-fuzz
 
-      - name: Fuzz for 1 minute
-        run: make cargo.fuzz target=${{ matrix.target }} time=60
+      - run: make cargo.fuzz target=${{ matrix.target }} time=60
 
   msrv:
     name: MSRV
@@ -103,10 +102,7 @@ jobs:
       fail-fast: false
       matrix:
         msrv: ["1.62.0"]
-        os:
-          - ubuntu
-          - macOS
-          - windows
+        os: ["ubuntu", "macOS", "windows"]
     runs-on: ${{ matrix.os }}-latest
     steps:
       - uses: actions/checkout@v3
@@ -126,14 +122,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu
-          - macOS
-          - windows
-        toolchain:
-          - stable
-          - beta
-          - nightly
+        toolchain: ["stable", "beta", "nightly"]
+        os: ["ubuntu", "macOS", "windows"]
     runs-on: ${{ matrix.os }}-latest
     steps:
       - uses: actions/checkout@v3
@@ -166,6 +156,8 @@ jobs:
           toolchain: nightly
 
       - run: make cargo.doc private=yes docsrs=yes open=no
+        env:
+          RUSTFLAGS: -D warnings
 
 
 
@@ -174,8 +166,8 @@ jobs:
   # Releasing #
   #############
 
-  release-crate:
-    name: release on crates.io
+  publish:
+    name: publish (crates.io)
     if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     needs: ["release-github"]
     runs-on: ubuntu-latest
@@ -185,12 +177,12 @@ jobs:
         with:
           toolchain: stable
 
-      - name: Publish `cucumber-expressions` crate
-        run: cargo publish -p cucumber-expressions
-                           --token ${{ secrets.CRATESIO_TOKEN }}
+      - run: cargo publish -p cucumber-expressions
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATESIO_TOKEN }}
 
   release-github:
-    name: release on GitHub
+    name: release (GitHub)
     if: ${{ startsWith(github.ref, 'refs/tags/v') }}
     needs:
       - clippy

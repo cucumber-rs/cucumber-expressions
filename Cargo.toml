@@ -33,7 +33,7 @@ nom_locate = "4.0"
 # "into-regex" feature dependencies
 either = { version = "1.6", optional = true }
 regex = { version = "1.5.5", optional = true }
-regex-syntax = { version = "0.6", optional = true }
+regex-syntax = { version = "0.7", optional = true }
 
 [workspace]
 members = ["fuzz"]

@@ -6,7 +6,7 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 
 
 
-## [0.3.0] · 2022-??-?? (unreleased)
+## [0.3.0] · 2023-04-24
 [0.3.0]: /../../tree/v0.3.0
 
 [Diff](/../../compare/v0.2.1...v0.3.0)
@@ -15,6 +15,9 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 
 - Bumped up [MSRV] to 1.62 for more clever support of [Cargo feature]s.
 - `Box`ed `ParameterError::RenameRegexGroup::err` field due to `clippy::result_large_err` lint suggestion.
+- Upgraded [`regex-syntax`] to 0.7 version (changed parametrization of [`Regex`] with custom capturing groups). ([cd28fecc])
+
+[cd28fecc]: /../../commit/cd28fecc62f5ee1942601053e5290968efa8244b
 
 
 
@@ -26,7 +29,7 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 
 ### Security updated
 
-- `regex` crate to 1.5.5 version to fix [CVE-2022-24713].
+- [`regex`] crate to 1.5.5 version to fix [CVE-2022-24713].
 
 [CVE-2022-24713]: https://blog.rust-lang.org/2022/03/08/cve-2022-24713.html
 
@@ -100,7 +103,9 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 
 
 
+[`regex`]: https://docs.rs/regex
 [`Regex`]: https://docs.rs/regex
+[`regex-syntax`]: https://docs.rs/regex-syntax
 
 [Cargo feature]: https://doc.rust-lang.org/cargo/reference/features.html
 [Cucumber Expressions]: https://github.com/cucumber/cucumber-expressions#readme

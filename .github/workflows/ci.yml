@@ -197,6 +197,7 @@ jobs:
       - name: Parse release version
         id: release
         run: echo "version=${GITHUB_REF#refs/tags/v}"
+             >> $GITHUB_OUTPUT
       - name: Verify release version matches Cargo manifest
         run: |
           test "${{ steps.release.outputs.version }}" \

@@ -306,7 +306,7 @@ type WithParsIter<I, P> = Either<
 mod regex_hir {
     use std::mem;
 
-    use regex_syntax::hir::{self, Hir, HirKind};
+    use regex_syntax::hir::{Hir, HirKind};
 
     /// Checks whether the given [`Regex`] [`Hir`] contains any capturing
     /// groups.
@@ -317,19 +317,9 @@ mod regex_hir {
             HirKind::Empty
             | HirKind::Literal(_)
             | HirKind::Class(_)
-            | HirKind::Anchor(_)
-            | HirKind::WordBoundary(_)
-            | HirKind::Repetition(_)
-            | HirKind::Group(hir::Group {
-                kind: hir::GroupKind::NonCapturing,
-                ..
-            }) => false,
-            HirKind::Group(hir::Group {
-                kind:
-                    hir::GroupKind::CaptureName { .. }
-                    | hir::GroupKind::CaptureIndex(_),
-                ..
-            }) => true,
+            | HirKind::Look(_)
+            | HirKind::Repetition(_) => false,
+            HirKind::Capture(_) => true,
             HirKind::Concat(inner) | HirKind::Alternation(inner) => {
                 inner.iter().any(has_capture_groups)
             }
@@ -343,7 +333,7 @@ mod regex_hir {
     }
 
     /// Renames capturing groups in the given [`Hir`] via
-    /// `__{parameter_id}_{group_id}` naming scheme, using the given
+    /// `__{parameter_id}_{group_id}` naming scheme, using the provided
     /// `group_id_indexer`.
     fn rename_groups_inner(
         hir: Hir,
@@ -352,30 +342,20 @@ mod regex_hir {
     ) -> Hir {
         match hir.into_kind() {
             HirKind::Empty => Hir::empty(),
-            HirKind::Literal(lit) => Hir::literal(lit),
+            HirKind::Literal(lit) => Hir::literal(lit.0),
             HirKind::Class(cl) => Hir::class(cl),
-            HirKind::Anchor(anc) => Hir::anchor(anc),
-            HirKind::WordBoundary(bound) => Hir::word_boundary(bound),
+            HirKind::Look(l) => Hir::look(l),
             HirKind::Repetition(rep) => Hir::repetition(rep),
-            HirKind::Group(mut group) => {
-                match group.kind {
-                    hir::GroupKind::CaptureIndex(index)
-                    | hir::GroupKind::CaptureName { index, .. } => {
-                        group.kind = hir::GroupKind::CaptureName {
-                            name: format!(
-                                "__{parameter_id}_{}",
-                                *group_id_indexer,
-                            ),
-                            index,
-                        };
-                        *group_id_indexer += 1;
-                    }
-                    hir::GroupKind::NonCapturing => {}
-                }
+            HirKind::Capture(mut capture) => {
+                capture.name = Some(
+                    format!("__{parameter_id}_{}", *group_id_indexer).into(),
+                );
+                *group_id_indexer += 1;
 
-                let inner_hir = mem::replace(group.hir.as_mut(), Hir::empty());
+                let inner_hir =
+                    mem::replace(capture.sub.as_mut(), Hir::empty());
                 drop(mem::replace(
-                    group.hir.as_mut(),
+                    capture.sub.as_mut(),
                     rename_groups_inner(
                         inner_hir,
                         parameter_id,
@@ -383,7 +363,7 @@ mod regex_hir {
                     ),
                 ));
 
-                Hir::group(group)
+                Hir::capture(capture)
             }
             HirKind::Concat(concat) => Hir::concat(
                 concat
@@ -428,8 +408,10 @@ mod spec {
 
         assert_eq!(
             expr.as_str(),
-            "^(?:\"(?P<__0_0>custom)\"|'(?P<__0_1>custom)') \
-              (?:\"(?P<__1_0>custom)\"|'(?P<__1_1>custom)')$",
+            "^(?:(?:(?:\"(?P<__0_0>(?:custom))\")\
+                    |(?:'(?P<__0_1>(?:custom))'))) \
+              (?:(?:(?:\"(?P<__1_0>(?:custom))\")\
+                    |(?:'(?P<__1_1>(?:custom))')))$",
         );
     }
 

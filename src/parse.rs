@@ -40,7 +40,7 @@ use crate::{
 };
 
 /// Reserved characters requiring a special handling.
-pub const RESERVED_CHARS: &str = r#"{}()\/ "#;
+pub const RESERVED_CHARS: &str = r"{}()\/ ";
 
 /// Matches `normal` and [`RESERVED_CHARS`] escaped with `\`.
 ///

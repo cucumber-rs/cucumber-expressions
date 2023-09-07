@@ -435,7 +435,7 @@ where
         };
 
         if eq(&self.input, "int") {
-            Left(Left(r#"((?:-?\d+)|(?:\d+))"#.chars().map(Ok)))
+            Left(Left(r"((?:-?\d+)|(?:\d+))".chars().map(Ok)))
         } else if eq(&self.input, "float") {
             // Regex in other implementations has lookaheads. As `regex` crate
             // doesn't support them, we use `f32`/`f64` grammar instead:
@@ -453,7 +453,7 @@ where
                 .map(Ok),
             ))
         } else if eq(&self.input, "word") {
-            Left(Left(r#"([^\s]+)"#.chars().map(Ok)))
+            Left(Left(r"([^\s]+)".chars().map(Ok)))
         } else if eq(&self.input, "string") {
             Left(Right(
                 OwnedChars::new(format!(
@@ -466,7 +466,7 @@ where
                 .map(Ok),
             ))
         } else if eq(&self.input, "") {
-            Left(Left(r#"(.*)"#.chars().map(Ok)))
+            Left(Left("(.*)".chars().map(Ok)))
         } else {
             Right(iter::once(Err(ParameterError::NotFound(self.input))))
         }

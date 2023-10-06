@@ -514,7 +514,7 @@ where
     Iter: fmt::Debug + Iterator,
     Iter::Item: fmt::Debug,
 {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("SkipLast")
             .field("iter", &self.iter)
             .finish()

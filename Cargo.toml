@@ -2,7 +2,7 @@
 name = "cucumber-expressions"
 version = "0.3.0"
 edition = "2021"
-rust-version = "1.62"
+rust-version = "1.65"
 description = "Cucumber Expressions AST and parser."
 license = "MIT OR Apache-2.0"
 authors = [
@@ -33,7 +33,7 @@ nom_locate = "4.0"
 # "into-regex" feature dependencies
 either = { version = "1.6", optional = true }
 regex = { version = "1.8.1", optional = true }
-regex-syntax = { version = "0.7.1", optional = true }
+regex-syntax = { version = "0.8", optional = true }
 
 [workspace]
 members = ["fuzz"]

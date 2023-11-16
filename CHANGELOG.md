@@ -6,6 +6,18 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 
 
 
+## [0.4.0] · (unreleased)
+[0.4.0]: /../../tree/v0.4.0
+
+[Diff](/../../compare/v0.3.0...v0.4.0)
+
+### BC Breaks
+
+- Bumped up [MSRV] to 1.65 because of newer dependencies versions.
+
+
+
+
 ## [0.3.0] · 2023-04-24
 [0.3.0]: /../../tree/v0.3.0
 

@@ -47,7 +47,7 @@ where
 ///    non-`escapable` `Input` or end of line.
 ///
 /// [`escaped()`]: nom::bytes::complete::escaped()
-pub(crate) fn escaped0<'a, Input: 'a, Error, F, G, O1, O2>(
+pub(crate) fn escaped0<'a, Input, Error, F, G, O1, O2>(
     mut normal: F,
     control_char: char,
     mut escapable: G,
@@ -59,7 +59,8 @@ where
         + InputTake
         + InputTakeAtPosition
         + Slice<RangeFrom<usize>>
-        + InputIter,
+        + InputIter
+        + 'a,
     <Input as InputIter>::Item: AsChar,
     F: Parser<Input, O1, Error>,
     G: Parser<Input, O2, Error>,

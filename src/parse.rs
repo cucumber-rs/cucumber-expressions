@@ -62,7 +62,7 @@ pub const RESERVED_CHARS: &str = r"{}()\/ ";
 /// [`EscapedEndOfLine`]: Error::EscapedEndOfLine
 /// [`EscapedNonReservedCharacter`]: Error::EscapedNonReservedCharacter
 /// [`Failure`]: Err::Failure
-fn escaped_reserved_chars0<'a, Input: 'a, F, O1>(
+fn escaped_reserved_chars0<'a, Input, F, O1>(
     normal: F,
 ) -> impl FnMut(Input) -> IResult<Input, Input, Error<Input>>
 where
@@ -73,7 +73,8 @@ where
         + InputTake
         + InputTakeAtPosition
         + Slice<RangeFrom<usize>>
-        + InputIter,
+        + InputIter
+        + 'a,
     <Input as InputIter>::Item: AsChar + Copy,
     F: Parser<Input, O1, Error<Input>>,
     Error<Input>: ParseError<Input>,
@@ -146,7 +147,7 @@ where
 /// [`UnescapedReservedCharacter`]: Error::UnescapedReservedCharacter
 /// [`UnfinishedParameter`]: Error::UnfinishedParameter
 /// [0]: crate#grammar
-pub fn parameter<'a, Input: 'a>(
+pub fn parameter<'a, Input>(
     input: Input,
     indexer: &mut usize,
 ) -> IResult<Input, Parameter<Input>, Error<Input>>
@@ -159,7 +160,8 @@ where
         + InputTakeAtPosition<Item = char>
         + Slice<RangeFrom<usize>>
         + InputIter
-        + for<'s> Compare<&'s str>,
+        + for<'s> Compare<&'s str>
+        + 'a,
     <Input as InputIter>::Item: AsChar + Copy,
     Error<Input>: ParseError<Input>,
     for<'s> &'s str: FindToken<<Input as InputIter>::Item>,
@@ -269,7 +271,7 @@ where
 /// [`UnescapedReservedCharacter`]: Error::UnescapedReservedCharacter
 /// [`UnfinishedOptional`]: Error::UnfinishedOptional
 /// [0]: crate#grammar
-pub fn optional<'a, Input: 'a>(
+pub fn optional<'a, Input>(
     input: Input,
 ) -> IResult<Input, Optional<Input>, Error<Input>>
 where
@@ -281,7 +283,8 @@ where
         + InputTakeAtPosition<Item = char>
         + Slice<RangeFrom<usize>>
         + InputIter
-        + for<'s> Compare<&'s str>,
+        + for<'s> Compare<&'s str>
+        + 'a,
     <Input as InputIter>::Item: AsChar + Copy,
     Error<Input>: ParseError<Input>,
     for<'s> &'s str: FindToken<<Input as InputIter>::Item>,
@@ -375,7 +378,7 @@ where
 ///
 /// [`Failure`]: Err::Failure
 /// [0]: crate#grammar
-pub fn alternative<'a, Input: 'a>(
+pub fn alternative<'a, Input>(
     input: Input,
 ) -> IResult<Input, Alternative<Input>, Error<Input>>
 where
@@ -387,7 +390,8 @@ where
         + InputTakeAtPosition<Item = char>
         + Slice<RangeFrom<usize>>
         + InputIter
-        + for<'s> Compare<&'s str>,
+        + for<'s> Compare<&'s str>
+        + 'a,
     <Input as InputIter>::Item: AsChar + Copy,
     Error<Input>: ParseError<Input>,
     for<'s> &'s str: FindToken<<Input as InputIter>::Item>,
@@ -529,7 +533,7 @@ where
 ///
 /// [`Failure`]: Err::Failure
 /// [0]: crate#grammar
-pub fn single_expression<'a, Input: 'a>(
+pub fn single_expression<'a, Input>(
     input: Input,
     indexer: &mut usize,
 ) -> IResult<Input, SingleExpression<Input>, Error<Input>>
@@ -542,7 +546,8 @@ where
         + InputTakeAtPosition<Item = char>
         + Slice<RangeFrom<usize>>
         + InputIter
-        + for<'s> Compare<&'s str>,
+        + for<'s> Compare<&'s str>
+        + 'a,
     <Input as InputIter>::Item: AsChar + Copy,
     Error<Input>: ParseError<Input>,
     for<'s> &'s str: FindToken<<Input as InputIter>::Item>,
@@ -592,7 +597,7 @@ where
 ///
 /// [`Failure`]: Err::Failure
 /// [0]: crate#grammar
-pub fn expression<'a, Input: 'a>(
+pub fn expression<'a, Input>(
     input: Input,
 ) -> IResult<Input, Expression<Input>, Error<Input>>
 where
@@ -604,7 +609,8 @@ where
         + InputTakeAtPosition<Item = char>
         + Slice<RangeFrom<usize>>
         + InputIter
-        + for<'s> Compare<&'s str>,
+        + for<'s> Compare<&'s str>
+        + 'a,
     <Input as InputIter>::Item: AsChar + Copy,
     Error<Input>: ParseError<Input>,
     for<'s> &'s str: FindToken<<Input as InputIter>::Item>,

@@ -21,7 +21,7 @@ pub mod parameters;
 
 use std::{fmt, iter, str, vec};
 
-use derive_more::{Display, Error, From};
+use derive_more::{Display, Error as DeriveError, From};
 use either::Either;
 use nom::{AsChar, InputIter};
 use regex::Regex;
@@ -140,37 +140,37 @@ impl<'s> Expression<Spanned<'s>> {
 /// [Cucumber Expression][0] and expanding it into a [`Regex`].
 ///
 /// [0]: https://github.com/cucumber/cucumber-expressions#readme
-#[derive(Clone, Debug, Display, Error, From)]
+#[derive(Clone, Debug, Display, DeriveError, From)]
 pub enum Error<Input>
 where
     Input: fmt::Display,
 {
     /// Parsing error.
-    #[display(fmt = "Parsing failed: {}", _0)]
+    #[display("Parsing failed: {}", _0)]
     Parsing(parse::Error<Input>),
 
     /// Expansion error.
-    #[display(fmt = "Failed to expand regex: {}", _0)]
+    #[display("Failed to expand regex: {}", _0)]
     Expansion(ParameterError<Input>),
 
     /// [`Regex`] creation error.
-    #[display(fmt = "Regex creation failed: {}", _0)]
+    #[display("Regex creation failed: {}", _0)]
     Regex(regex::Error),
 }
 
 /// Possible [`Parameter`] errors being used in an [`Expression`].
-#[derive(Clone, Debug, Display, Error)]
+#[derive(Clone, Debug, Display, DeriveError)]
 pub enum ParameterError<Input>
 where
     Input: fmt::Display,
 {
     /// [`Parameter`] not found.
-    #[display(fmt = "Parameter `{}` not found.", _0)]
+    #[display("Parameter `{}` not found.", _0)]
     NotFound(Input),
 
     /// Failed to rename [`Regex`] capturing group.
     #[display(
-        fmt = "Failed to rename capturing groups in regex `{}` of \
+        "Failed to rename capturing groups in regex `{}` of \
                parameter `{}`: {}",
         re,
         parameter,

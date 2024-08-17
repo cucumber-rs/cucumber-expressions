@@ -18,7 +18,7 @@
 
 use std::{fmt::Display, ops::RangeFrom};
 
-use derive_more::{Display, Error};
+use derive_more::{Display as DeriveDisplay, Error as DeriveError};
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while, take_while1},
@@ -623,14 +623,14 @@ where
 }
 
 /// Possible parsing errors.
-#[derive(Clone, Copy, Debug, Display, Error, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, DeriveDisplay, DeriveError, Eq, PartialEq)]
 pub enum Error<Input>
 where
     Input: Display,
 {
     /// Nested [`Parameter`]s.
     #[display(
-        fmt = "{}\n\
+        "{}\n\
                A parameter may not contain an other parameter.\n\
                If you did not mean to use an optional type you can use '\\{{' \
                to escape the '{{'. For more complicated expressions consider \
@@ -641,7 +641,7 @@ where
 
     /// [`Optional`] inside a [`Parameter`].
     #[display(
-        fmt = "{}\n\
+        "{}\n\
                A parameter may not contain an optional.\n\
                If you did not mean to use an parameter type you can use '\\(' \
                to escape the '('.",
@@ -651,7 +651,7 @@ where
 
     /// Unfinished [`Parameter`].
     #[display(
-        fmt = "{}\n\
+        "{}\n\
                The '{{' does not have a matching '}}'.\n\
                If you did not intend to use a parameter you can use '\\{{' to \
                escape the '{{'.",
@@ -661,7 +661,7 @@ where
 
     /// Nested [`Optional`].
     #[display(
-        fmt = "{}\n\
+        "{}\n\
                An optional may not contain an other optional.\n\
                If you did not mean to use an optional type you can use '\\(' \
                to escape the '('. For more complicated expressions consider \
@@ -672,7 +672,7 @@ where
 
     /// [`Parameter`] inside an [`Optional`].
     #[display(
-        fmt = "{}\n\
+        "{}\n\
                An optional may not contain a parameter.\n\
                If you did not mean to use an parameter type you can use \
                '\\{{' to escape the '{{'.",
@@ -682,7 +682,7 @@ where
 
     /// Empty [`Optional`].
     #[display(
-        fmt = "{}\n\
+        "{}\n\
                An optional must contain some text.\n\
                If you did not mean to use an optional you can use '\\(' to \
                escape the '('.",
@@ -692,7 +692,7 @@ where
 
     /// [`Alternation`] inside an [`Optional`].
     #[display(
-        fmt = "{}\n\
+        "{}\n\
                An alternation can not be used inside an optional.\n\
                You can use '\\/' to escape the '/'.",
         _0
@@ -701,7 +701,7 @@ where
 
     /// Unfinished [`Optional`].
     #[display(
-        fmt = "{}\n\
+        "{}\n\
                The '(' does not have a matching ')'.\n\
                If you did not intend to use an optional you can use '\\(' to \
                escape the '('.",
@@ -711,7 +711,7 @@ where
 
     /// Empty [`Alternation`].
     #[display(
-        fmt = "{}\n\
+        "{}\n\
                An alternation can not be empty.\n\
                If you did not mean to use an alternative you can use '\\/' to \
                escape the '/'.",
@@ -721,7 +721,7 @@ where
 
     /// Only [`Optional`] inside [`Alternation`].
     #[display(
-        fmt = "{}\n\
+        "{}\n\
                An alternation may not exclusively contain optionals.\n\
                If you did not mean to use an optional you can use '\\(' to \
                escape the '('.",
@@ -731,7 +731,7 @@ where
 
     /// Unescaped [`RESERVED_CHARS`].
     #[display(
-        fmt = "{}\n\
+        "{}\n\
                Unescaped reserved character.\n\
                You can use an '\\' to escape it.",
         _0
@@ -740,7 +740,7 @@ where
 
     /// Escaped non-[`RESERVED_CHARS`].
     #[display(
-        fmt = "{}\n\
+        "{}\n\
                Only the characters '{{', '}}', '(', ')', '\\', '/' and \
                whitespace can be escaped.\n\
                If you did mean to use an '\\' you can use '\\\\' to escape it.",
@@ -750,7 +750,7 @@ where
 
     /// Escaped EOL.
     #[display(
-        fmt = "{}\n\
+        "{}\n\
                The end of line can not be escaped.\n\
                You can use '\\' to escape the the '\'.",
         _0
@@ -759,7 +759,7 @@ where
 
     /// Unknown error.
     #[display(
-        fmt = "{}\n\
+        "{}\n\
                Unknown parsing error.",
         _0
     )]
@@ -767,11 +767,11 @@ where
 
     /// Parsing requires more data.
     #[display(
-        fmt = "{}",
-        "match _0 {\
-            Needed::Size(n) => format!(\"Parsing requires {n} bytes/chars\"),\
-            Needed::Unknown => \"Parsing requires more data\".to_owned(),\
-        }"
+        "{}",
+        match _0 {
+            Needed::Size(n) => format!("Parsing requires {n} bytes/chars"),
+            Needed::Unknown => "Parsing requires more data".to_owned(),
+        }
     )]
     Needed(#[error(not(source))] Needed),
 }

@@ -159,8 +159,6 @@
     unused_results,
     variant_size_differences
 )]
-// TODO: Remove on next `derive_more` major version.
-#![allow(clippy::uninlined_format_args)]
 
 pub mod ast;
 mod combinator;

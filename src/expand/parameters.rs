@@ -347,9 +347,8 @@ mod regex_hir {
             HirKind::Look(l) => Hir::look(l),
             HirKind::Repetition(rep) => Hir::repetition(rep),
             HirKind::Capture(mut capture) => {
-                capture.name = Some(
-                    format!("__{parameter_id}_{}", *group_id_indexer).into(),
-                );
+                capture.name =
+                    Some(format!("__{parameter_id}_{group_id_indexer}").into());
                 *group_id_indexer += 1;
 
                 let inner_hir =

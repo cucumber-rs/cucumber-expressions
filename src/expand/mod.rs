@@ -19,9 +19,9 @@
 
 pub mod parameters;
 
-use std::{fmt, iter, str, vec};
+use std::{iter, str, vec};
 
-use derive_more::{Display, Error as DeriveError, From};
+use derive_more::{Debug, Display, Error as StdError, From};
 use either::Either;
 use nom::{AsChar, InputIter};
 use regex::Regex;
@@ -140,41 +140,38 @@ impl<'s> Expression<Spanned<'s>> {
 /// [Cucumber Expression][0] and expanding it into a [`Regex`].
 ///
 /// [0]: https://github.com/cucumber/cucumber-expressions#readme
-#[derive(Clone, Debug, Display, DeriveError, From)]
+#[derive(Clone, Debug, Display, From, StdError)]
 pub enum Error<Input>
 where
-    Input: fmt::Display,
+    Input: Display,
 {
     /// Parsing error.
-    #[display("Parsing failed: {}", _0)]
+    #[display("Parsing failed: {_0}")]
     Parsing(parse::Error<Input>),
 
     /// Expansion error.
-    #[display("Failed to expand regex: {}", _0)]
+    #[display("Failed to expand regex: {_0}")]
     Expansion(ParameterError<Input>),
 
     /// [`Regex`] creation error.
-    #[display("Regex creation failed: {}", _0)]
+    #[display("Regex creation failed: {_0}")]
     Regex(regex::Error),
 }
 
 /// Possible [`Parameter`] errors being used in an [`Expression`].
-#[derive(Clone, Debug, Display, DeriveError)]
+#[derive(Clone, Debug, Display, StdError)]
 pub enum ParameterError<Input>
 where
-    Input: fmt::Display,
+    Input: Display,
 {
     /// [`Parameter`] not found.
-    #[display("Parameter `{}` not found.", _0)]
+    #[display("Parameter `{_0}` not found")]
     NotFound(Input),
 
     /// Failed to rename [`Regex`] capturing group.
     #[display(
-        "Failed to rename capturing groups in regex `{}` of \
-               parameter `{}`: {}",
-        re,
-        parameter,
-        err
+        "Failed to rename capturing groups in regex `{re}` of \
+         parameter `{parameter}`: {err}"
     )]
     RenameRegexGroup {
         /// [`Parameter`] name.
@@ -196,8 +193,8 @@ where
 /// [0]: https://github.com/cucumber/cucumber-expressions#readme
 /// [1]: https://git.io/J159T
 /// [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
-pub trait IntoRegexCharIter<Input: fmt::Display> {
-    /// Type of an [`Iterator`] performing the expansion.
+pub trait IntoRegexCharIter<Input: Display> {
+    /// Type of [`Iterator`] performing the expansion.
     type Iter: Iterator<Item = Result<char, ParameterError<Input>>>;
 
     /// Consumes this [AST] element returning an [`Iterator`] over [`char`]s
@@ -209,7 +206,7 @@ pub trait IntoRegexCharIter<Input: fmt::Display> {
 
 impl<Input> IntoRegexCharIter<Input> for Expression<Input>
 where
-    Input: Clone + fmt::Display + InputIter,
+    Input: Clone + Display + InputIter,
     <Input as InputIter>::Item: AsChar,
 {
     type Iter = ExpressionIter<Input>;
@@ -244,7 +241,7 @@ type ExpressionIter<Input> = iter::Chain<
 
 impl<Input> IntoRegexCharIter<Input> for SingleExpression<Input>
 where
-    Input: Clone + fmt::Display + InputIter,
+    Input: Clone + Display + InputIter,
     <Input as InputIter>::Item: AsChar,
 {
     type Iter = SingleExpressionIter<Input>;
@@ -290,7 +287,7 @@ type SingleExpressionIter<Input> = Either<
 
 impl<Input> IntoRegexCharIter<Input> for Alternation<Input>
 where
-    Input: fmt::Display + InputIter,
+    Input: Display + InputIter,
     <Input as InputIter>::Item: AsChar,
 {
     type Iter = AlternationIter<Input>;
@@ -345,7 +342,7 @@ type AlternationIterInner<I> = iter::Chain<
 
 impl<Input> IntoRegexCharIter<Input> for Alternative<Input>
 where
-    Input: fmt::Display + InputIter,
+    Input: Display + InputIter,
     <Input as InputIter>::Item: AsChar,
 {
     type Iter = AlternativeIter<Input>;
@@ -382,7 +379,7 @@ type AlternativeIter<Input> = Either<
 
 impl<Input> IntoRegexCharIter<Input> for Optional<Input>
 where
-    Input: fmt::Display + InputIter,
+    Input: Display + InputIter,
     <Input as InputIter>::Item: AsChar,
 {
     type Iter = OptionalIter<Input>;
@@ -422,7 +419,7 @@ type MapOkChar<Input> = fn(char) -> Result<char, ParameterError<Input>>;
 
 impl<Input> IntoRegexCharIter<Input> for Parameter<Input>
 where
-    Input: Clone + fmt::Display + InputIter,
+    Input: Clone + Display + InputIter,
     <Input as InputIter>::Item: AsChar,
 {
     type Iter = ParameterIter<Input>;
@@ -490,6 +487,7 @@ type ParameterIter<Input> = Either<
 /// [`Iterator`] for skipping a last [`Item`].
 ///
 /// [`Item`]: Iterator::Item
+#[derive(Debug)]
 pub struct SkipLast<Iter: Iterator> {
     /// Inner [`Iterator`] to skip the last [`Item`] from.
     ///
@@ -506,18 +504,6 @@ where
         Self {
             iter: self.iter.clone(),
         }
-    }
-}
-
-impl<Iter> fmt::Debug for SkipLast<Iter>
-where
-    Iter: fmt::Debug + Iterator,
-    Iter::Item: fmt::Debug,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("SkipLast")
-            .field("iter", &self.iter)
-            .finish()
     }
 }
 

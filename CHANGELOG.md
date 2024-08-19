@@ -13,7 +13,7 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 
 ### BC Breaks
 
-- Bumped up [MSRV] to 1.65 because of newer dependencies versions.
+- Bumped up [MSRV] to 1.75 because of newer dependencies versions.
 
 
 

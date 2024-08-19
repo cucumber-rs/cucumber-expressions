@@ -2,7 +2,7 @@
 ===============================
 
 [![crates.io](https://img.shields.io/crates/v/cucumber-expressions.svg?maxAge=2592000 "crates.io")](https://crates.io/crates/cucumber-expressions)
-[![Rust 1.65+](https://img.shields.io/badge/rustc-1.65+-lightgray.svg "Rust 1.65+")](https://blog.rust-lang.org/2022/11/03/Rust-1.65.0.html)
+[![Rust 1.75+](https://img.shields.io/badge/rustc-1.75+-lightgray.svg "Rust 1.75+")](https://blog.rust-lang.org/2023/12/28/Rust-1.75.0.html)
 [![Unsafe Forbidden](https://img.shields.io/badge/unsafe-forbidden-success.svg "Unsafe forbidden")](https://github.com/rust-secure-code/safety-dance)  
 [![CI](https://github.com/cucumber-rs/cucumber-expressions/workflows/CI/badge.svg?branch=main "CI")](https://github.com/cucumber-rs/cucumber-expressions/actions?query=workflow%3ACI+branch%3Amaster)
 [![Rust docs](https://docs.rs/cucumber-expressions/badge.svg "Rust docs")](https://docs.rs/cucumber-expressions)

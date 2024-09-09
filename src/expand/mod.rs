@@ -35,7 +35,6 @@ pub use self::parameters::{
     Provider as ParametersProvider, WithCustom as WithCustomParameters,
 };
 
-#[allow(clippy::multiple_inherent_impl)] // because of `into-regex` feature
 impl<'s> Expression<Spanned<'s>> {
     /// Parses the given `input` as an [`Expression`], and immediately expands
     /// it into the appropriate [`Regex`].

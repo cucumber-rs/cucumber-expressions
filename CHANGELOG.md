@@ -13,9 +13,9 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 
 ### BC Breaks
 
-- Bumped up [MSRV] to 1.81 because for `#[expect]` attribute usage. ([todo])
+- Bumped up [MSRV] to 1.81 because for `#[expect]` attribute usage. ([e1bb9266])
 
-[todo]: /../../commit/todo
+[e1bb9266]: /../../commit/e1bb92668617432948ab0faa32232b67d6c530e7
 
 
 

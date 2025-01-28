@@ -1,3 +1,5 @@
+//! Shrank version of `nom_locate` crate.
+
 use std::{
     hash::{Hash, Hasher},
     str::FromStr,
@@ -11,7 +13,7 @@ use nom::{
 };
 
 #[cfg(doc)]
-use self as nom_locate;
+use super::nom_locate;
 
 /// Set of meta information about the location of a token, including extra
 /// information.
@@ -106,10 +108,10 @@ impl<T, X> LocatedSpan<T, X> {
     /// assert_eq!(span.location_offset(), 0);
     /// assert_eq!(span.location_line(), 1);
     /// assert_eq!(span.fragment(), &&b"foobar"[..]);
-    /// assert_eq!(span.extra(), "extra");
+    /// assert_eq!(*span.extra(), "extra");
     /// ```
     #[must_use]
-    pub fn new_extra(program: T, extra: X) -> Self {
+    pub const fn new_extra(program: T, extra: X) -> Self {
         Self {
             offset: 0,
             line: 1,
@@ -123,7 +125,7 @@ impl<T, X> LocatedSpan<T, X> {
     ///
     /// It starts at offset `0`.
     #[must_use]
-    pub fn location_offset(&self) -> usize {
+    pub const fn location_offset(&self) -> usize {
         self.offset
     }
 
@@ -132,21 +134,21 @@ impl<T, X> LocatedSpan<T, X> {
     ///
     /// It starts at line `1`.
     #[must_use]
-    pub fn location_line(&self) -> u32 {
+    pub const fn location_line(&self) -> u32 {
         self.line
     }
 
     /// Returns the fragment that is spanned, as a part of the input of the
     /// parser.
     #[must_use]
-    pub fn fragment(&self) -> &T {
+    pub const fn fragment(&self) -> &T {
         &self.fragment
     }
 
     /// Returns the extra information embedded by the user (the parsed file
     /// name, for example).
     #[must_use]
-    pub fn extra(&self) -> &X {
+    pub const fn extra(&self) -> &X {
         &self.extra
     }
 }
@@ -183,8 +185,8 @@ impl<T: AsBytes, X> AsBytes for LocatedSpan<T, X> {
 
 impl<T, X> Input for LocatedSpan<T, X>
 where
-    T: Input + Offset,
-    Self: Clone,
+    T: AsBytes + Input + Offset,
+    X: Clone,
 {
     type Item = <T as Input>::Item;
     type Iter = <T as Input>::Iter;
@@ -206,13 +208,14 @@ where
             };
         }
 
-        let consumed = self.fragment.take(..consumed_len);
+        let consumed = self.fragment.take(consumed_len);
 
         let next_offset = self.offset + consumed_len;
 
         let consumed_as_bytes = consumed.as_bytes();
         let iter = Memchr::new(b'\n', consumed_as_bytes);
-        let number_of_lines = iter.count() as u32;
+        #[expect(clippy::unwrap_used, reason = "not happening")]
+        let number_of_lines: u32 = iter.count().try_into().unwrap();
         let next_line = self.line + number_of_lines;
 
         Self {
@@ -235,13 +238,14 @@ where
             };
         }
 
-        let consumed = self.fragment.take(..consumed_len);
+        let consumed = self.fragment.take(consumed_len);
 
         let next_offset = self.offset + consumed_len;
 
         let consumed_as_bytes = consumed.as_bytes();
         let iter = Memchr::new(b'\n', consumed_as_bytes);
-        let number_of_lines = iter.count() as u32;
+        #[expect(clippy::unwrap_used, reason = "not happening")]
+        let number_of_lines: u32 = iter.count().try_into().unwrap();
         let next_line = self.line + number_of_lines;
 
         Self {
@@ -253,7 +257,7 @@ where
     }
 
     fn take_split(&self, index: usize) -> (Self, Self) {
-        (self.take(index), self.take_from(index))
+        (self.take_from(index), self.take(index))
     }
 
     fn position<P>(&self, predicate: P) -> Option<usize>
@@ -332,6 +336,6 @@ where
     }
 
     fn extend_into(&self, acc: &mut Self::Extender) {
-        self.fragment.extend_into(acc)
+        self.fragment.extend_into(acc);
     }
 }

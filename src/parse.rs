@@ -16,7 +16,7 @@
 //! [1]: https://github.com/cucumber/cucumber-expressions#readme
 //! [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 
-use std::{fmt::Display, ops::RangeFrom};
+use std::fmt::Display;
 
 use derive_more::{Display, Error};
 use nom::{
@@ -26,9 +26,7 @@ use nom::{
     combinator::{map, peek, verify},
     error::{ErrorKind, ParseError},
     multi::{many0, many1, separated_list1},
-    sequence::tuple,
-    AsChar, Compare, Err, FindToken, IResult, InputIter, InputLength,
-    InputTake, InputTakeAtPosition, Needed, Offset, Parser, Slice,
+    AsChar, Compare, Err, FindToken, IResult, Input, Needed, Offset, Parser,
 };
 
 use crate::{
@@ -62,23 +60,15 @@ pub const RESERVED_CHARS: &str = r"{}()\/ ";
 /// [`EscapedEndOfLine`]: Error::EscapedEndOfLine
 /// [`EscapedNonReservedCharacter`]: Error::EscapedNonReservedCharacter
 /// [`Failure`]: Err::Failure
-fn escaped_reserved_chars0<'a, Input, F, O1>(
+fn escaped_reserved_chars0<'a, I, F>(
     normal: F,
-) -> impl FnMut(Input) -> IResult<Input, Input, Error<Input>>
+) -> impl FnMut(I) -> IResult<I, I, Error<I>>
 where
-    Input: Clone
-        + Display
-        + Offset
-        + InputLength
-        + InputTake
-        + InputTakeAtPosition
-        + Slice<RangeFrom<usize>>
-        + InputIter
-        + 'a,
-    <Input as InputIter>::Item: AsChar + Copy,
-    F: Parser<Input, O1, Error<Input>>,
-    Error<Input>: ParseError<Input>,
-    for<'s> &'s str: FindToken<<Input as InputIter>::Item>,
+    I: Clone + Display + Offset + Input + 'a,
+    <I as Input>::Item: AsChar + Copy,
+    F: Parser<I, Error = Error<I>>,
+    Error<I>: ParseError<I>,
+    for<'s> &'s str: FindToken<<I as Input>::Item>,
 {
     combinator::map_err(
         combinator::escaped0(normal, '\\', one_of(RESERVED_CHARS)),
@@ -147,37 +137,31 @@ where
 /// [`UnescapedReservedCharacter`]: Error::UnescapedReservedCharacter
 /// [`UnfinishedParameter`]: Error::UnfinishedParameter
 /// [0]: crate#grammar
-pub fn parameter<'a, Input>(
-    input: Input,
+pub fn parameter<'a, I>(
+    input: I,
     indexer: &mut usize,
-) -> IResult<Input, Parameter<Input>, Error<Input>>
+) -> IResult<I, Parameter<I>, Error<I>>
 where
-    Input: Clone
-        + Display
-        + Offset
-        + InputLength
-        + InputTake
-        + InputTakeAtPosition<Item = char>
-        + Slice<RangeFrom<usize>>
-        + InputIter
-        + for<'s> Compare<&'s str>
-        + 'a,
-    <Input as InputIter>::Item: AsChar + Copy,
-    Error<Input>: ParseError<Input>,
-    for<'s> &'s str: FindToken<<Input as InputIter>::Item>,
+    I: Clone + Display + Offset + Input + for<'s> Compare<&'s str> + 'a,
+    <I as Input>::Item: AsChar + Copy,
+    Error<I>: ParseError<I>,
+    for<'s> &'s str: FindToken<<I as Input>::Item>,
 {
-    let is_name = |c| !"{}(\\/".contains(c);
+    fn is_name(c: impl AsChar) -> bool {
+        !"{}(\\/".contains(c.as_char())
+    }
 
-    let fail = |inp: Input, opening_brace| {
+    let fail = |inp: I, opening_brace| {
         match inp.iter_elements().next().map(AsChar::as_char) {
             Some('{') => {
-                if let Ok((_, (par, ..))) = peek(tuple((
+                if let Ok((_, (par, ..))) = peek((
                     // We don't use `indexer` here, because we do this parsing
                     // for error reporting only.
                     |i| parameter(i, &mut 0),
                     escaped_reserved_chars0(take_while(is_name)),
                     tag("}"),
-                )))(inp.clone())
+                ))
+                .parse(inp.clone())
                 {
                     return Error::NestedParameter(
                         inp.take(par.input.input_len() + 2),
@@ -188,7 +172,7 @@ where
                     .failure();
             }
             Some('(') => {
-                if let Ok((_, opt)) = peek(optional)(inp.clone()) {
+                if let Ok((_, opt)) = peek(optional).parse(inp.clone()) {
                     return Error::OptionalInParameter(
                         inp.take(opt.0.input_len() + 2),
                     )
@@ -271,34 +255,26 @@ where
 /// [`UnescapedReservedCharacter`]: Error::UnescapedReservedCharacter
 /// [`UnfinishedOptional`]: Error::UnfinishedOptional
 /// [0]: crate#grammar
-pub fn optional<'a, Input>(
-    input: Input,
-) -> IResult<Input, Optional<Input>, Error<Input>>
+pub fn optional<'a, I>(input: I) -> IResult<I, Optional<I>, Error<I>>
 where
-    Input: Clone
-        + Display
-        + Offset
-        + InputLength
-        + InputTake
-        + InputTakeAtPosition<Item = char>
-        + Slice<RangeFrom<usize>>
-        + InputIter
-        + for<'s> Compare<&'s str>
-        + 'a,
-    <Input as InputIter>::Item: AsChar + Copy,
-    Error<Input>: ParseError<Input>,
-    for<'s> &'s str: FindToken<<Input as InputIter>::Item>,
+    I: Clone + Display + Offset + Input + for<'s> Compare<&'s str> + 'a,
+    <I as Input>::Item: AsChar + Copy,
+    Error<I>: ParseError<I>,
+    for<'s> &'s str: FindToken<<I as Input>::Item>,
 {
-    let is_in_optional = |c| !"(){\\/".contains(c);
+    fn is_in_optional(c: impl AsChar) -> bool {
+        !"(){\\/".contains(c.as_char())
+    }
 
-    let fail = |inp: Input, opening_brace| {
+    let fail = |inp: I, opening_brace| {
         match inp.iter_elements().next().map(AsChar::as_char) {
             Some('(') => {
-                if let Ok((_, (opt, ..))) = peek(tuple((
+                if let Ok((_, (opt, ..))) = peek((
                     optional,
                     escaped_reserved_chars0(take_while(is_in_optional)),
                     tag(")"),
-                )))(inp.clone())
+                ))
+                .parse(inp.clone())
                 {
                     return Error::NestedOptional(
                         inp.take(opt.0.input_len() + 2),
@@ -312,7 +288,7 @@ where
                 // We use just `0` as `indexer` here, because we do this parsing
                 // for error reporting only.
                 if let Ok((_, par)) =
-                    peek(|i| parameter(i, &mut 0))(inp.clone())
+                    peek(|i| parameter(i, &mut 0)).parse(inp.clone())
                 {
                     return Error::ParameterInOptional(
                         inp.take(par.input.input_len() + 2),
@@ -378,25 +354,16 @@ where
 ///
 /// [`Failure`]: Err::Failure
 /// [0]: crate#grammar
-pub fn alternative<'a, Input>(
-    input: Input,
-) -> IResult<Input, Alternative<Input>, Error<Input>>
+pub fn alternative<'a, I>(input: I) -> IResult<I, Alternative<I>, Error<I>>
 where
-    Input: Clone
-        + Display
-        + Offset
-        + InputLength
-        + InputTake
-        + InputTakeAtPosition<Item = char>
-        + Slice<RangeFrom<usize>>
-        + InputIter
-        + for<'s> Compare<&'s str>
-        + 'a,
-    <Input as InputIter>::Item: AsChar + Copy,
-    Error<Input>: ParseError<Input>,
-    for<'s> &'s str: FindToken<<Input as InputIter>::Item>,
+    I: Clone + Display + Offset + Input + for<'s> Compare<&'s str> + 'a,
+    <I as Input>::Item: AsChar + Copy,
+    Error<I>: ParseError<I>,
+    for<'s> &'s str: FindToken<<I as Input>::Item>,
 {
-    let is_without_whitespace = |c| !" ({\\/".contains(c);
+    fn is_without_whitespace(c: impl AsChar) -> bool {
+        !" ({\\/".contains(c.as_char())
+    }
 
     alt((
         map(optional, Alternative::Optional),
@@ -407,7 +374,8 @@ where
             ),
             Alternative::Text,
         ),
-    ))(input)
+    ))
+    .parse(input)
 }
 
 /// Parses an `alternation` as defined in the [grammar spec][0].
@@ -447,29 +415,20 @@ where
 /// [`EmptyAlternation`]: Error::EmptyAlternation
 /// [`OnlyOptionalInAlternation`]: Error::OnlyOptionalInAlternation
 /// [0]: crate#grammar
-pub fn alternation<Input>(
-    input: Input,
-) -> IResult<Input, Alternation<Input>, Error<Input>>
+pub fn alternation<I>(input: I) -> IResult<I, Alternation<I>, Error<I>>
 where
-    Input: Clone
-        + Display
-        + Offset
-        + InputLength
-        + InputTake
-        + InputTakeAtPosition<Item = char>
-        + Slice<RangeFrom<usize>>
-        + InputIter
-        + for<'s> Compare<&'s str>,
-    <Input as InputIter>::Item: AsChar + Copy,
-    Error<Input>: ParseError<Input>,
-    for<'s> &'s str: FindToken<<Input as InputIter>::Item>,
+    I: Clone + Display + Offset + Input + for<'s> Compare<&'s str>,
+    <I as Input>::Item: AsChar + Copy,
+    Error<I>: ParseError<I>,
+    for<'s> &'s str: FindToken<<I as Input>::Item>,
 {
     let original_input = input.clone();
-    let (rest, alt) = match separated_list1(tag("/"), many1(alternative))(input)
+    let (rest, alt) = match separated_list1(tag("/"), many1(alternative))
+        .parse(input)
     {
         Ok((rest, alt)) => {
             if let Ok((_, slash)) =
-                peek::<_, _, Error<Input>, _>(tag("/"))(rest.clone())
+                peek(tag::<_, _, Error<I>>("/")).parse(rest.clone())
             {
                 Err(Error::EmptyAlternation(slash).failure())
             } else if alt.len() == 1 {
@@ -479,7 +438,7 @@ where
             }
         }
         Err(Err::Error(Error::Other(sp, ErrorKind::Many1)))
-            if peek::<_, _, Error<Input>, _>(tag("/"))(sp.clone()).is_ok() =>
+            if peek(tag::<_, _, Error<I>>("/")).parse(sp.clone()).is_ok() =>
         {
             Err(Error::EmptyAlternation(sp.take(1)).failure())
         }
@@ -533,27 +492,22 @@ where
 ///
 /// [`Failure`]: Err::Failure
 /// [0]: crate#grammar
-pub fn single_expression<'a, Input>(
-    input: Input,
+pub fn single_expression<'a, I>(
+    input: I,
     indexer: &mut usize,
-) -> IResult<Input, SingleExpression<Input>, Error<Input>>
+) -> IResult<I, SingleExpression<I>, Error<I>>
 where
-    Input: Clone
-        + Display
-        + Offset
-        + InputLength
-        + InputTake
-        + InputTakeAtPosition<Item = char>
-        + Slice<RangeFrom<usize>>
-        + InputIter
-        + for<'s> Compare<&'s str>
-        + 'a,
-    <Input as InputIter>::Item: AsChar + Copy,
-    Error<Input>: ParseError<Input>,
-    for<'s> &'s str: FindToken<<Input as InputIter>::Item>,
+    I: Clone + Display + Offset + Input + for<'s> Compare<&'s str> + 'a,
+    <I as Input>::Item: AsChar + Copy,
+    Error<I>: ParseError<I>,
+    for<'s> &'s str: FindToken<<I as Input>::Item>,
 {
-    let is_without_whitespace = |c| !" ({\\/".contains(c);
-    let is_whitespace = |c| c == ' ';
+    fn is_without_whitespace(c: impl AsChar) -> bool {
+        !" ({\\/".contains(c.as_char())
+    }
+    fn is_whitespace(c: impl AsChar) -> bool {
+        c.as_char() == ' '
+    }
 
     alt((
         map(alternation, SingleExpression::Alternation),
@@ -567,7 +521,8 @@ where
             SingleExpression::Text,
         ),
         map(take_while1(is_whitespace), SingleExpression::Whitespaces),
-    ))(input)
+    ))
+    .parse(input)
 }
 
 /// Parses an `expression` as defined in the [grammar spec][0].
@@ -597,29 +552,19 @@ where
 ///
 /// [`Failure`]: Err::Failure
 /// [0]: crate#grammar
-pub fn expression<'a, Input>(
-    input: Input,
-) -> IResult<Input, Expression<Input>, Error<Input>>
+pub fn expression<'a, I>(input: I) -> IResult<I, Expression<I>, Error<I>>
 where
-    Input: Clone
-        + Display
-        + Offset
-        + InputLength
-        + InputTake
-        + InputTakeAtPosition<Item = char>
-        + Slice<RangeFrom<usize>>
-        + InputIter
-        + for<'s> Compare<&'s str>
-        + 'a,
-    <Input as InputIter>::Item: AsChar + Copy,
-    Error<Input>: ParseError<Input>,
-    for<'s> &'s str: FindToken<<Input as InputIter>::Item>,
+    I: Clone + Display + Offset + Input + for<'s> Compare<&'s str> + 'a,
+    <I as Input>::Item: AsChar + Copy,
+    Error<I>: ParseError<I>,
+    for<'s> &'s str: FindToken<<I as Input>::Item>,
 {
     let mut indexer = 0;
     map(
         many0(move |i| single_expression(i, &mut indexer)),
         Expression,
-    )(input)
+    )
+    .parse(input)
 }
 
 /// Possible parsing errors.
@@ -834,8 +779,14 @@ mod spec {
     fn unwrap_parser<'s, T>(
         parser: IResult<Spanned<'s>, T, Error<Spanned<'s>>>,
     ) -> T {
-        let (rest, par) =
-            parser.unwrap_or_else(|e| panic!("Expected Ok, found Err: {e}"));
+        let (rest, par) = parser.unwrap_or_else(|e| match &e {
+            Err::Error(e) | Err::Failure(e) => {
+                panic!("expected `Ok`, found `Err`: {e}")
+            }
+            Err::Incomplete(_) => {
+                panic!("expected `Ok`, but `Err::Incomplete`: {e}")
+            }
+        });
         assert_eq!(*rest, "");
         par
     }
@@ -1150,7 +1101,7 @@ mod spec {
                     Alternative::Text(t) => {
                         assert_eq!(*t, input, "on input: {input}");
                     }
-                    _ => panic!("expected Alternative::Text"),
+                    _ => panic!("expected `Alternative::Text`"),
                 }
             }
         }
@@ -1162,7 +1113,7 @@ mod spec {
                     Alternative::Text(t) => {
                         assert_eq!(*t, input, "on input: {input}");
                     }
-                    _ => panic!("expected Alternative::Text"),
+                    _ => panic!("expected `Alternative::Text`"),
                 }
             }
         }
@@ -1174,7 +1125,7 @@ mod spec {
                     assert_eq!(**t, "opt");
                 }
                 Alternative::Text(_) => {
-                    panic!("expected Alternative::Optional");
+                    panic!("expected `Alternative::Optional`");
                 }
             }
         }
@@ -1188,7 +1139,7 @@ mod spec {
                     match matched {
                         Alternative::Text(t) => assert_eq!(*t, "text"),
                         Alternative::Optional(_) => {
-                            panic!("expected Alternative::Text");
+                            panic!("expected `Alternative::Text`");
                         }
                     }
                 }

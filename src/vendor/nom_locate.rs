@@ -1,4 +1,20 @@
-//! Shrank version of `nom_locate` crate.
+// Copyright (c) 2025  Brendan Molloy <brendan@bbqsrc.net>,
+//                     Ilya Solovyiov <ilya.solovyiov@gmail.com>,
+//                     Kai Ren <tyranron@gmail.com>
+//
+// Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+// http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+// <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+// option. This file may not be copied, modified, or distributed
+// except according to those terms.
+
+//! Shrank and modified version of the [4.2.0 `nom_locate` crate].
+//!
+//! Original [4.2.0 `nom_locate` crate] code is:
+//! > Copyright 2017-2019  Florent Fayolle, Valentin Lorentz (see [LICENSE]).
+//!
+//! [4.2.0 `nom_locate` crate]: https://docs.rs/nom_locate/4.2.0
+//! [LICENSE]: https://docs.rs/crate/nom_locate/4.2.0/source/LICENSE
 
 use std::{
     hash::{Hash, Hasher},
@@ -151,6 +167,41 @@ impl<T, X> LocatedSpan<T, X> {
     pub const fn extra(&self) -> &X {
         &self.extra
     }
+
+    /// Slices this [`LocatedSpan`] by the provided `next_fragment` part of its
+    /// own [`LocatedSpan::fragment`].
+    fn slice_by(&self, next_fragment: T) -> Self
+    where
+        T: AsBytes + Input + Offset,
+        X: Clone,
+    {
+        let consumed_len = self.fragment.offset(&next_fragment);
+        if consumed_len == 0 {
+            return Self {
+                line: self.line,
+                offset: self.offset,
+                fragment: next_fragment,
+                extra: self.extra.clone(),
+            };
+        }
+
+        let consumed = self.fragment.take(consumed_len);
+
+        let next_offset = self.offset + consumed_len;
+
+        let consumed_as_bytes = consumed.as_bytes();
+        let iter = Memchr::new(b'\n', consumed_as_bytes);
+        #[expect(clippy::unwrap_used, reason = "not feasible")]
+        let number_of_lines: u32 = iter.count().try_into().unwrap();
+        let next_line = self.line + number_of_lines;
+
+        Self {
+            line: next_line,
+            offset: next_offset,
+            fragment: next_fragment,
+            extra: self.extra.clone(),
+        }
+    }
 }
 
 impl<T: Hash, X> Hash for LocatedSpan<T, X> {
@@ -197,63 +248,11 @@ where
     }
 
     fn take(&self, index: usize) -> Self {
-        let next_fragment = self.fragment.take(index);
-        let consumed_len = self.fragment.offset(&next_fragment);
-        if consumed_len == 0 {
-            return Self {
-                line: self.line,
-                offset: self.offset,
-                fragment: next_fragment,
-                extra: self.extra.clone(),
-            };
-        }
-
-        let consumed = self.fragment.take(consumed_len);
-
-        let next_offset = self.offset + consumed_len;
-
-        let consumed_as_bytes = consumed.as_bytes();
-        let iter = Memchr::new(b'\n', consumed_as_bytes);
-        #[expect(clippy::unwrap_used, reason = "not happening")]
-        let number_of_lines: u32 = iter.count().try_into().unwrap();
-        let next_line = self.line + number_of_lines;
-
-        Self {
-            line: next_line,
-            offset: next_offset,
-            fragment: next_fragment,
-            extra: self.extra.clone(),
-        }
+        self.slice_by(self.fragment.take(index))
     }
 
     fn take_from(&self, index: usize) -> Self {
-        let next_fragment = self.fragment.take_from(index);
-        let consumed_len = self.fragment.offset(&next_fragment);
-        if consumed_len == 0 {
-            return Self {
-                line: self.line,
-                offset: self.offset,
-                fragment: next_fragment,
-                extra: self.extra.clone(),
-            };
-        }
-
-        let consumed = self.fragment.take(consumed_len);
-
-        let next_offset = self.offset + consumed_len;
-
-        let consumed_as_bytes = consumed.as_bytes();
-        let iter = Memchr::new(b'\n', consumed_as_bytes);
-        #[expect(clippy::unwrap_used, reason = "not happening")]
-        let number_of_lines: u32 = iter.count().try_into().unwrap();
-        let next_line = self.line + number_of_lines;
-
-        Self {
-            line: next_line,
-            offset: next_offset,
-            fragment: next_fragment,
-            extra: self.extra.clone(),
-        }
+        self.slice_by(self.fragment.take_from(index))
     }
 
     fn take_split(&self, index: usize) -> (Self, Self) {

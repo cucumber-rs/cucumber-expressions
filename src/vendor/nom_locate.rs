@@ -1,16 +1,13 @@
 use std::{
     hash::{Hash, Hasher},
-    slice,
     str::FromStr,
 };
 
-use bytecount::{naive_num_chars, num_chars};
 use derive_more::{Deref, Display};
-use memchr::{memchr, Memchr};
+use memchr::Memchr;
 use nom::{
-    error::{ErrorKind, ParseError},
-    AsBytes, Compare, CompareResult, Err, ExtendInto, FindSubstring, FindToken,
-    IResult, Input, InputTakeAtPosition, Offset, ParseTo,
+    AsBytes, Compare, CompareResult, ExtendInto, FindSubstring, FindToken,
+    Input, Offset, ParseTo,
 };
 
 #[cfg(doc)]
@@ -58,9 +55,6 @@ impl<T> LocatedSpan<T, ()> {
     /// Creates a new [`LocatedSpan`] for a particular input with default
     /// `offset`/`line` values and empty extra data.
     ///
-    /// The column could be computed through the [`get_column()`] or
-    /// [`get_utf8_column()`] methods.
-    ///
     /// `offset` starts at `0`, `line` starts at `1`, and `column` starts at
     /// `1`.
     ///
@@ -78,12 +72,7 @@ impl<T> LocatedSpan<T, ()> {
     ///
     /// assert_eq!(span.location_offset(), 0);
     /// assert_eq!(span.location_line(), 1);
-    /// assert_eq!(span.get_column(), 1);
     /// assert_eq!(span.fragment(), &&b"foobar"[..]);
-    /// ```
-    ///
-    /// [`get_column()`]: LocatedSpan::get_column
-    /// [`get_utf8_column()`]: LocatedSpan::get_utf8_column
     #[must_use]
     pub const fn new(program: T) -> Self {
         Self {
@@ -98,9 +87,6 @@ impl<T> LocatedSpan<T, ()> {
 impl<T, X> LocatedSpan<T, X> {
     /// Creates a new [`LocatedSpan`] for a particular input with default
     /// `offset` and `line` values and the provided `extra` information.
-    ///
-    /// The column could be computed through the [`get_column()`] or
-    /// [`get_utf8_column()`] methods.
     ///
     /// `offset` starts at `0`, `line` starts at `1`, and `column` starts at
     /// `1`.
@@ -119,13 +105,9 @@ impl<T, X> LocatedSpan<T, X> {
     ///
     /// assert_eq!(span.location_offset(), 0);
     /// assert_eq!(span.location_line(), 1);
-    /// assert_eq!(span.get_column(), 1);
     /// assert_eq!(span.fragment(), &&b"foobar"[..]);
-    /// assert_eq!(span.extra, "extra");
+    /// assert_eq!(span.extra(), "extra");
     /// ```
-    ///
-    /// [`get_column()`]: LocatedSpan::get_column
-    /// [`get_utf8_column()`]: LocatedSpan::get_utf8_column
     #[must_use]
     pub fn new_extra(program: T, extra: X) -> Self {
         Self {
@@ -166,164 +148,6 @@ impl<T, X> LocatedSpan<T, X> {
     #[must_use]
     pub fn extra(&self) -> &X {
         &self.extra
-    }
-}
-
-impl<T: AsBytes, X> LocatedSpan<T, X> {
-    /// Attempts to get the "original" data slice back, by extending
-    /// `self.fragment` backwards by the `self.offset`.
-    ///
-    /// > **NOTE**: Any bytes truncated from after `self.fragment` won't be
-    /// >           recovered.
-    fn get_unoffsetted_slice(&self) -> &[u8] {
-        let self_bytes = self.fragment.as_bytes();
-        let self_ptr = self_bytes.as_ptr();
-
-        assert!(self.offset <= isize::MAX as usize, "offset is too big");
-
-        unsafe {
-            let orig_input_ptr = self_ptr.offset(-(self.offset as isize));
-            slice::from_raw_parts(
-                orig_input_ptr,
-                self.offset + self_bytes.len(),
-            )
-        }
-    }
-
-    /// Attempts to get the "original" column and bytes back, by extending
-    /// `self.fragment` backwards by the `self.offset`.
-    fn get_columns_and_bytes_before(&self) -> (usize, &[u8]) {
-        let before_self = &self.get_unoffsetted_slice()[..self.offset];
-
-        let column = match memchr::memrchr(b'\n', before_self) {
-            None => self.offset + 1,
-            Some(pos) => self.offset - pos,
-        };
-
-        (column, &before_self[self.offset - (column - 1)..])
-    }
-
-    /// Returns the line that contains this [`LocatedSpan`].
-    ///
-    /// The [`get_column()`] and [`get_utf8_column()`] methods return indices
-    /// that correspond to the line returned by this function.
-    ///
-    /// > **NOTE**: If this [`LocatedSpan`] ends before the end of the original
-    /// >           data, the result of calling this method won't include any
-    /// >           data from after this [`LocatedSpan`].
-    ///
-    /// ```rust
-    /// # use cucumber_expressions::vendor::nom_locate::LocatedSpan;
-    /// # use nom::{FindSubstring as _, Input as _};
-    /// #
-    /// let program = LocatedSpan::new(
-    ///     "Hello World!\
-    ///     \nThis is a multi-line input\
-    ///     \nthat ends after this line.\n",
-    /// );
-    /// let multi = program.find_substring("multi").unwrap();
-    ///
-    /// assert_eq!(
-    ///     program.slice(multi..).get_line_beginning(),
-    ///     "This is a multi-line input".as_bytes(),
-    /// );
-    /// ```
-    ///
-    /// [`get_column()`]: LocatedSpan::get_column
-    /// [`get_utf8_column()`]: LocatedSpan::get_utf8_column
-    #[must_use]
-    pub fn get_line_beginning(&self) -> &[u8] {
-        let column0 = self.get_column() - 1;
-        let the_line = &self.get_unoffsetted_slice()[self.offset - column0..];
-        match memchr(b'\n', &the_line[column0..]) {
-            None => the_line,
-            Some(pos) => &the_line[..column0 + pos],
-        }
-    }
-
-    /// Return the column index, assuming `1 byte = 1 column`.
-    ///
-    /// Use it for ASCII text, or use the [`get_utf8_column()`] for UTF-8.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// # use cucumber_expressions::vendor::nom_locate::LocatedSpan;
-    /// # use nom::Input as _;
-    /// #
-    /// let span = LocatedSpan::new("foobar");
-    ///
-    /// assert_eq!(span.take_from(3).get_column(), 4);
-    /// ```
-    ///
-    /// [`get_utf8_column()`]: LocatedSpan::get_utf8_column
-    #[must_use]
-    pub fn get_column(&self) -> usize {
-        self.get_columns_and_bytes_before().0
-    }
-
-    /// Returns the column index for UTF-8 text.
-    ///
-    /// Returned value is unspecified for non-UTF-8 text.
-    ///
-    /// This version uses [`bytecount`]'s hyper algorithm to count characters.
-    /// This is much faster for long lines, but is non-negligibly slower for
-    /// short slices (below around 100 bytes). If you expect primarily short
-    /// lines, you may get a noticeable speedup in parsing by using the
-    /// [`naive_get_utf8_column()`] method instead. Benchmark your specific use
-    /// case!
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// # use cucumber_expressions::vendor::nom_locate::LocatedSpan;
-    /// # use nom::{FindSubstring as _, Input as _};
-    /// #
-    /// let span = LocatedSpan::new("メカジキ");
-    /// let index_of_3rd_kanji = span.find_substring("ジ").unwrap();
-    ///
-    /// assert_eq!(span.take_from(index_of_3rd_kanji).get_column(), 7);
-    /// assert_eq!(span.take_from(index_of_3rd_kanji).get_utf8_column(), 3);
-    /// ```
-    ///
-    /// [`naive_get_utf8_column()`]: LocatedSpan::naive_get_utf8_column
-    #[must_use]
-    pub fn get_utf8_column(&self) -> usize {
-        let before_self = self.get_columns_and_bytes_before().1;
-        num_chars(before_self) + 1
-    }
-
-    /// Returns the column index for UTF-8 text.
-    ///
-    /// Returned value is unspecified for non-UTF-8 text.
-    ///
-    /// A simpler implementation of the [`get_utf8_column()`] method that may be
-    /// faster on shorter lines. If benchmarking shows that this is faster, you
-    /// can use it instead of [`get_utf8_column()`]. Prefer defaulting to
-    /// [`get_utf8_column()`] unless this legitimately is a performance
-    /// bottleneck.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// # use cucumber_expressions::vendor::nom_locate::LocatedSpan;
-    /// # use nom::{FindSubstring as _, Input as _};
-    /// #
-    /// let span = LocatedSpan::new("メカジキ");
-    /// let index_of_3rd_kanji = span.find_substring("ジ").unwrap();
-    ///
-    /// assert_eq!(span.take_from(index_of_3rd_kanji).get_column(), 7);
-    /// assert_eq!(
-    ///     span.take_from(index_of_3rd_kanji).naive_get_utf8_column(),
-    ///     3,
-    /// );
-    /// ```
-    ///
-    /// [`get_utf8_column()`]: LocatedSpan::get_utf8_column
-    #[must_use]
-    pub fn naive_get_utf8_column(&self) -> usize {
-        let before_self = self.get_columns_and_bytes_before().1;
-        naive_num_chars(before_self) + 1
     }
 }
 

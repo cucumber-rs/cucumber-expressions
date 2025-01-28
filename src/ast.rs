@@ -17,10 +17,9 @@
 //! [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 
 use derive_more::{AsRef, Deref, DerefMut};
-use nom::{error::ErrorKind, Err, InputLength};
-use nom_locate::LocatedSpan;
+use nom::{error::ErrorKind, Err, Input};
 
-use crate::parse;
+use crate::{parse, vendor::nom_locate::LocatedSpan};
 
 /// [`str`] along with its location information in the original input.
 pub type Spanned<'s> = LocatedSpan<&'s str>;
@@ -112,7 +111,7 @@ pub type SingleAlternation<Input> = Vec<Alternative<Input>>;
 #[derive(AsRef, Clone, Debug, Deref, DerefMut, Eq, PartialEq)]
 pub struct Alternation<Input>(pub Vec<SingleAlternation<Input>>);
 
-impl<Input: InputLength> Alternation<Input> {
+impl<I: Input> Alternation<I> {
     /// Returns length of this [`Alternation`]'s span in the `Input`.
     pub(crate) fn span_len(&self) -> usize {
         self.0

@@ -15,7 +15,7 @@
 use std::{collections::HashMap, fmt::Display, iter, str, vec};
 
 use either::Either;
-use nom::{AsChar, InputIter};
+use nom::{AsChar, Input};
 
 use crate::{expand::OwnedChars, Parameter, SingleExpression};
 
@@ -53,10 +53,10 @@ pub struct WithCustom<Element, Parameters> {
 }
 
 /// Provider of custom [`Parameter`]s.
-pub trait Provider<Input> {
-    /// `<`[`Value`]` as `[`InputIter`]`>::`[`Item`].
+pub trait Provider<I> {
+    /// `<`[`Value`]` as `[`Input`]`>::`[`Item`].
     ///
-    /// [`Item`]: InputIter::Item
+    /// [`Item`]: Input::Item
     /// [`Value`]: Self::Value
     type Item: AsChar;
 
@@ -68,25 +68,25 @@ pub trait Provider<Input> {
     /// capturing groups related to a single [`Parameter`].
     ///
     /// [`Regex`]: regex::Regex
-    type Value: InputIter<Item = Self::Item>;
+    type Value: Input<Item = Self::Item>;
 
     /// Returns a [`Value`] matcher corresponding to the given `input`, if any.
     ///
     /// [`Value`]: Self::Value
-    fn get(&self, input: &Input) -> Option<Self::Value>;
+    fn get(&self, input: &I) -> Option<Self::Value>;
 }
 
-impl<'p, Input, Key, Value, S> Provider<Input> for &'p HashMap<Key, Value, S>
+impl<'p, I, Key, Value, S> Provider<I> for &'p HashMap<Key, Value, S>
 where
-    Input: InputIter,
-    <Input as InputIter>::Item: AsChar,
+    I: Input,
+    <I as Input>::Item: AsChar,
     Key: AsRef<str>,
     Value: AsRef<str>,
 {
     type Item = char;
     type Value = &'p str;
 
-    fn get(&self, input: &Input) -> Option<Self::Value> {
+    fn get(&self, input: &I) -> Option<Self::Value> {
         self.iter().find_map(|(k, v)| {
             k.as_ref()
                 .chars()
@@ -96,15 +96,14 @@ where
     }
 }
 
-impl<Input, Pars> IntoRegexCharIter<Input>
-    for WithCustom<Expression<Input>, Pars>
+impl<I, Pars> IntoRegexCharIter<I> for WithCustom<Expression<I>, Pars>
 where
-    Input: Clone + Display + InputIter,
-    <Input as InputIter>::Item: AsChar,
-    Pars: Clone + Provider<Input>,
-    <Pars as Provider<Input>>::Value: InputIter,
+    I: Clone + Display + Input,
+    <I as Input>::Item: AsChar,
+    Pars: Clone + Provider<I>,
+    <Pars as Provider<I>>::Value: Input,
 {
-    type Iter = ExpressionWithParsIter<Input, Pars>;
+    type Iter = ExpressionWithParsIter<I, Pars>;
 
     fn into_regex_char_iter(self) -> Self::Iter {
         let add_pars: fn(_) -> _ = |(item, parameters)| WithCustom {
@@ -148,15 +147,14 @@ type ExpressionWithParsIter<I, P> = iter::Chain<
     iter::Once<Result<char, ParameterError<I>>>,
 >;
 
-impl<Input, Pars> IntoRegexCharIter<Input>
-    for WithCustom<SingleExpression<Input>, Pars>
+impl<I, Pars> IntoRegexCharIter<I> for WithCustom<SingleExpression<I>, Pars>
 where
-    Input: Clone + Display + InputIter,
-    <Input as InputIter>::Item: AsChar,
-    Pars: Provider<Input>,
-    <Pars as Provider<Input>>::Value: InputIter,
+    I: Clone + Display + Input,
+    <I as Input>::Item: AsChar,
+    Pars: Provider<I>,
+    <Pars as Provider<I>>::Value: Input,
 {
-    type Iter = SingleExprWithParsIter<Input, Pars>;
+    type Iter = SingleExprWithParsIter<I, Pars>;
 
     fn into_regex_char_iter(self) -> Self::Iter {
         use Either::{Left, Right};
@@ -184,14 +182,14 @@ type SingleExprWithParsIter<I, P> = Either<
     SingleExpressionIter<I>,
 >;
 
-impl<Input, P> IntoRegexCharIter<Input> for WithCustom<Parameter<Input>, P>
+impl<I, P> IntoRegexCharIter<I> for WithCustom<Parameter<I>, P>
 where
-    Input: Clone + Display + InputIter,
-    <Input as InputIter>::Item: AsChar,
-    P: Provider<Input>,
-    <P as Provider<Input>>::Value: InputIter,
+    I: Clone + Display + Input,
+    <I as Input>::Item: AsChar,
+    P: Provider<I>,
+    <P as Provider<I>>::Value: Input,
 {
-    type Iter = WithParsIter<Input, P>;
+    type Iter = WithParsIter<I, P>;
 
     fn into_regex_char_iter(self) -> Self::Iter {
         use Either::{Left, Right};
@@ -233,7 +231,7 @@ where
                 parsed.map_or_else(
                     || {
                         let ok: fn(_) -> _ =
-                            |c: <P::Value as InputIter>::Item| Ok(c.as_char());
+                            |c: <P::Value as Input>::Item| Ok(c.as_char());
                         Right(Right(Right(
                             iter::once(Ok('('))
                                 .chain(v.iter_elements().map(ok))
@@ -286,9 +284,9 @@ type WithParsIter<I, P> = Either<
                 iter::Chain<
                     iter::Once<Result<char, ParameterError<I>>>,
                     iter::Map<
-                        <<P as Provider<I>>::Value as InputIter>::IterElem,
+                        <<P as Provider<I>>::Value as Input>::Iter,
                         fn(
-                            <<P as Provider<I>>::Value as InputIter>::Item,
+                            <<P as Provider<I>>::Value as Input>::Item,
                         )
                             -> Result<char, ParameterError<I>>,
                     >,

@@ -26,9 +26,10 @@ rustdoc-args = ["--cfg", "docsrs"]
 into-regex = ["dep:either", "dep:regex", "dep:regex-syntax"]
 
 [dependencies]
+bytecount = "0.6"
 derive_more = { version = "0.99.17", features = ["as_ref", "deref", "deref_mut", "display", "error", "from", "into"], default-features = false }
-nom = "7.0"
-nom_locate = "4.0"
+memchr = "2.3"
+nom = "8.0"
 
 # "into-regex" feature dependencies
 either = { version = "1.6", optional = true }

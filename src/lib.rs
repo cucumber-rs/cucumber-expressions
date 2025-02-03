@@ -173,7 +173,6 @@ mod combinator;
 #[cfg(feature = "into-regex")]
 pub mod expand;
 pub mod parse;
-pub mod vendor;
 
 #[doc(inline)]
 pub use self::ast::{

@@ -18,8 +18,9 @@
 
 use derive_more::{AsRef, Deref, DerefMut};
 use nom::{error::ErrorKind, Err, Input};
+use nom_locate::LocatedSpan;
 
-use crate::{parse, vendor::nom_locate::LocatedSpan};
+use crate::parse;
 
 /// [`str`] along with its location information in the original input.
 pub type Spanned<'s> = LocatedSpan<&'s str>;

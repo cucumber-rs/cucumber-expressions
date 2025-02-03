@@ -14,10 +14,11 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 ### BC Breaks
 
 - Bumped up [MSRV] to 1.81 because for `#[expect]` attribute usage. ([e1bb9266])
-- Upgraded [`nom`] to 8.0 version. ([#14])
+- Upgraded [`nom`] to 8.0 version and [`nom_locate`] to 5.0 version. ([#14], [todo])
 
 [#14]: /../../pull/14
 [e1bb9266]: /../../commit/e1bb92668617432948ab0faa32232b67d6c530e7
+[todo]: /../../commit/todo
 
 
 

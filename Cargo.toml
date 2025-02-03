@@ -27,8 +27,8 @@ into-regex = ["dep:either", "dep:regex", "dep:regex-syntax"]
 
 [dependencies]
 derive_more = { version = "0.99.17", features = ["as_ref", "deref", "deref_mut", "display", "error", "from", "into"], default-features = false }
-memchr = "2.3"
 nom = "8.0"
+nom_locate = "5.0"
 
 # "into-regex" feature dependencies
 either = { version = "1.6", optional = true }

@@ -7,7 +7,7 @@
 [![CI](https://github.com/cucumber-rs/cucumber-expressions/actions/workflows/ci.yml/badge.svg?branch=main "CI")](https://github.com/cucumber-rs/cucumber-expressions/actions?query=workflow%3ACI+branch%3Amain)
 [![Rust docs](https://docs.rs/cucumber-expressions/badge.svg "Rust docs")](https://docs.rs/cucumber-expressions)
 
-- [Changelog](https://github.com/cucumber-rs/cucumber-expressions/blob/main/CHANGELOG.md)
+- [Changelog](https://github.com/cucumber-rs/cucumber-expressions/blob/v0.4.0/CHANGELOG.md)
 
 Rust implementation of [Cucumber Expressions].
 
@@ -84,8 +84,8 @@ Follows original [production rules][2].
 
 This project is licensed under either of
 
-* Apache License, Version 2.0 ([LICENSE-APACHE](https://github.com/cucumber-rs/cucumber-expressions/blob/main/LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
-* MIT license ([LICENSE-MIT](https://github.com/cucumber-rs/cucumber-expressions/blob/main/LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
+* Apache License, Version 2.0 ([LICENSE-APACHE](https://github.com/cucumber-rs/cucumber-expressions/blob/v0.4.0/LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
+* MIT license ([LICENSE-MIT](https://github.com/cucumber-rs/cucumber-expressions/blob/v0.4.0/LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
 
 at your option.
 

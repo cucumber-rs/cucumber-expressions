@@ -693,11 +693,14 @@ pub enum Error<Input> {
 
     /// Parsing requires more data.
     #[display(
-        "{}",
-        match _0 {
-            Needed::Size(n) => format!("Parsing requires {n} bytes/chars"),
-            Needed::Unknown => "Parsing requires more data".into(),
-        },
+        "{}", match _0 {
+            Needed::Size(n) => {
+                write!(__derive_more_f, "Parsing requires {n} bytes/chars")
+            }
+            Needed::Unknown => {
+                write!(__derive_more_f, "Parsing requires more data")
+            }
+        }.map(|()| "")?
     )]
     Needed(#[error(not(source))] Needed),
 }

@@ -186,9 +186,9 @@ pub enum ParameterError<Input> {
 /// [0]: https://github.com/cucumber/cucumber-expressions#readme
 /// [1]: https://git.io/J159T
 /// [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
-pub trait IntoRegexCharIter<Input> {
+pub trait IntoRegexCharIter<I> {
     /// Type of [`Iterator`] performing the expansion.
-    type Iter: Iterator<Item = Result<char, ParameterError<Input>>>;
+    type Iter: Iterator<Item = Result<char, ParameterError<I>>>;
 
     /// Consumes this [AST] element returning an [`Iterator`] over [`char`]s
     /// transformable into a [`Regex`].

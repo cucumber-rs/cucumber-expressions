@@ -16,6 +16,11 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 - Bumped up [MSRV] to 1.81 because for `#[expect]` attribute usage. ([e1bb9266])
 - Upgraded [`nom`] to 8.0 version and [`nom_locate`] to 5.0 version. ([#14], [todo])
 
+### Updated
+
+- [`derive_more`] to 2.0 version. ([#13])
+
+[#13]: /../../pull/13
 [#14]: /../../pull/14
 [e1bb9266]: /../../commit/e1bb92668617432948ab0faa32232b67d6c530e7
 [todo]: /../../commit/todo
@@ -97,7 +102,6 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 - [`derive_more`] minimal version to `0.99.17`. ([#5])
 
 [#5]: /../../pull/5
-[`derive_more`]: https://docs.rs/derive_more
 
 
 
@@ -120,7 +124,9 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 
 
 
+[`derive_more`]: https://docs.rs/derive_more
 [`nom`]: https://docs.rs/nom
+[`nom_locate`]: https://docs.rs/nom_locate
 [`regex`]: https://docs.rs/regex
 [`Regex`]: https://docs.rs/regex
 [`regex-syntax`]: https://docs.rs/regex-syntax

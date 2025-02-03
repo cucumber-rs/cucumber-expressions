@@ -16,9 +16,7 @@
 //! [1]: https://github.com/cucumber/cucumber-expressions#readme
 //! [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 
-use std::fmt::Display;
-
-use derive_more::{Display, Error};
+use derive_more::with_trait::{Display, Error as StdError};
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while, take_while1},
@@ -568,160 +566,146 @@ where
 }
 
 /// Possible parsing errors.
-#[derive(Clone, Copy, Debug, Display, Error, Eq, PartialEq)]
-pub enum Error<Input>
-where
-    Input: Display,
-{
+#[derive(Clone, Copy, Debug, Display, Eq, PartialEq, StdError)]
+pub enum Error<Input> {
     /// Nested [`Parameter`]s.
     #[display(
-        fmt = "{}\n\
-               A parameter may not contain an other parameter.\n\
-               If you did not mean to use an optional type you can use '\\{{' \
-               to escape the '{{'. For more complicated expressions consider \
-               using a regular expression instead.",
-        _0
+        "{_0}\n\
+         A parameter may not contain an other parameter.\n\
+         If you did not mean to use an optional type you can use '\\{{' to \
+         escape the '{{'. For more complicated expressions consider using a \
+         regular expression instead."
     )]
     NestedParameter(#[error(not(source))] Input),
 
     /// [`Optional`] inside a [`Parameter`].
     #[display(
-        fmt = "{}\n\
-               A parameter may not contain an optional.\n\
-               If you did not mean to use an parameter type you can use '\\(' \
-               to escape the '('.",
-        _0
+        "{_0}\n\
+         A parameter may not contain an optional.\n\
+         If you did not mean to use an parameter type you can use '\\(' to \
+         escape the '('."
     )]
     OptionalInParameter(#[error(not(source))] Input),
 
     /// Unfinished [`Parameter`].
     #[display(
-        fmt = "{}\n\
-               The '{{' does not have a matching '}}'.\n\
-               If you did not intend to use a parameter you can use '\\{{' to \
-               escape the '{{'.",
-        _0
+        "{_0}\n\
+         The '{{' does not have a matching '}}'.\n\
+         If you did not intend to use a parameter you can use '\\{{' to escape \
+         the '{{'."
     )]
     UnfinishedParameter(#[error(not(source))] Input),
 
     /// Nested [`Optional`].
     #[display(
-        fmt = "{}\n\
-               An optional may not contain an other optional.\n\
-               If you did not mean to use an optional type you can use '\\(' \
-               to escape the '('. For more complicated expressions consider \
-               using a regular expression instead.",
-        _0
+        "{_0}\n\
+         An optional may not contain an other optional.\n\
+         If you did not mean to use an optional type you can use '\\(' to \
+         escape the '('. For more complicated expressions consider using a \
+         regular expression instead."
     )]
     NestedOptional(#[error(not(source))] Input),
 
     /// [`Parameter`] inside an [`Optional`].
     #[display(
-        fmt = "{}\n\
-               An optional may not contain a parameter.\n\
-               If you did not mean to use an parameter type you can use \
-               '\\{{' to escape the '{{'.",
-        _0
+        "{_0}\n\
+         An optional may not contain a parameter.\n\
+         If you did not mean to use an parameter type you can use '\\{{' to \
+         escape the '{{'."
     )]
     ParameterInOptional(#[error(not(source))] Input),
 
     /// Empty [`Optional`].
     #[display(
-        fmt = "{}\n\
-               An optional must contain some text.\n\
-               If you did not mean to use an optional you can use '\\(' to \
-               escape the '('.",
-        _0
+        "{_0}\n\
+         An optional must contain some text.\n\
+         If you did not mean to use an optional you can use '\\(' to escape \
+         the '('."
     )]
     EmptyOptional(#[error(not(source))] Input),
 
     /// [`Alternation`] inside an [`Optional`].
     #[display(
-        fmt = "{}\n\
-               An alternation can not be used inside an optional.\n\
-               You can use '\\/' to escape the '/'.",
-        _0
+        "{_0}\n\
+         An alternation can not be used inside an optional.\n\
+         You can use '\\/' to escape the '/'."
     )]
     AlternationInOptional(#[error(not(source))] Input),
 
     /// Unfinished [`Optional`].
     #[display(
-        fmt = "{}\n\
-               The '(' does not have a matching ')'.\n\
-               If you did not intend to use an optional you can use '\\(' to \
-               escape the '('.",
-        _0
+        "{_0}\n\
+         The '(' does not have a matching ')'.\n\
+         If you did not intend to use an optional you can use '\\(' to escape \
+         the '('."
     )]
     UnfinishedOptional(#[error(not(source))] Input),
 
     /// Empty [`Alternation`].
     #[display(
-        fmt = "{}\n\
-               An alternation can not be empty.\n\
-               If you did not mean to use an alternative you can use '\\/' to \
-               escape the '/'.",
-        _0
+        "{_0}\n\
+         An alternation can not be empty.\n\
+         If you did not mean to use an alternative you can use '\\/' to \
+         escape the '/'."
     )]
     EmptyAlternation(#[error(not(source))] Input),
 
     /// Only [`Optional`] inside [`Alternation`].
     #[display(
-        fmt = "{}\n\
-               An alternation may not exclusively contain optionals.\n\
-               If you did not mean to use an optional you can use '\\(' to \
-               escape the '('.",
-        _0
+        "{_0}\n\
+         An alternation may not exclusively contain optionals.\n\
+         If you did not mean to use an optional you can use '\\(' to escape \
+         the '('."
     )]
     OnlyOptionalInAlternation(#[error(not(source))] Input),
 
     /// Unescaped [`RESERVED_CHARS`].
     #[display(
-        fmt = "{}\n\
-               Unescaped reserved character.\n\
-               You can use an '\\' to escape it.",
-        _0
+        "{_0}\n\
+         Unescaped reserved character.\n\
+         You can use an '\\' to escape it."
     )]
     UnescapedReservedCharacter(#[error(not(source))] Input),
 
     /// Escaped non-[`RESERVED_CHARS`].
     #[display(
-        fmt = "{}\n\
-               Only the characters '{{', '}}', '(', ')', '\\', '/' and \
-               whitespace can be escaped.\n\
-               If you did mean to use an '\\' you can use '\\\\' to escape it.",
-        _0
+        "{_0}\n\
+         Only the characters '{{', '}}', '(', ')', '\\', '/' and whitespace \
+         can be escaped.\n\
+         If you did mean to use an '\\' you can use '\\\\' to escape it."
     )]
     EscapedNonReservedCharacter(#[error(not(source))] Input),
 
     /// Escaped EOL.
     #[display(
-        fmt = "{}\n\
-               The end of line can not be escaped.\n\
-               You can use '\\' to escape the the '\'.",
-        _0
+        "{_0}\n\
+         The end of line can not be escaped.\n\
+         You can use '\\' to escape the the '\'."
     )]
     EscapedEndOfLine(#[error(not(source))] Input),
 
     /// Unknown error.
     #[display(
-        fmt = "{}\n\
-               Unknown parsing error.",
-        _0
+        "{_0}\n\
+         Unknown parsing error."
     )]
     Other(#[error(not(source))] Input, ErrorKind),
 
     /// Parsing requires more data.
     #[display(
-        fmt = "{}",
-        "match _0 {\
-            Needed::Size(n) => format!(\"Parsing requires {n} bytes/chars\"),\
-            Needed::Unknown => \"Parsing requires more data\".to_owned(),\
-        }"
+        "{}", match _0 {
+            Needed::Size(n) => {
+                write!(__derive_more_f, "Parsing requires {n} bytes/chars")
+            }
+            Needed::Unknown => {
+                write!(__derive_more_f, "Parsing requires more data")
+            }
+        }.map(|()| "")?
     )]
     Needed(#[error(not(source))] Needed),
 }
 
-impl<Input: Display> Error<Input> {
+impl<Input> Error<Input> {
     /// Converts this [`Error`] into a [`Failure`].
     ///
     /// [`Error`]: enum@Error
@@ -731,7 +715,7 @@ impl<Input: Display> Error<Input> {
     }
 }
 
-impl<Input: Display> ParseError<Input> for Error<Input> {
+impl<Input> ParseError<Input> for Error<Input> {
     fn from_error_kind(input: Input, kind: ErrorKind) -> Self {
         Self::Other(input, kind)
     }

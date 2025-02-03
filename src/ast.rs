@@ -16,7 +16,7 @@
 //! [1]: https://github.com/cucumber/cucumber-expressions#readme
 //! [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 
-use derive_more::{AsRef, Deref, DerefMut};
+use derive_more::with_trait::{AsRef, Deref, DerefMut};
 use nom::{error::ErrorKind, Err, Input};
 use nom_locate::LocatedSpan;
 

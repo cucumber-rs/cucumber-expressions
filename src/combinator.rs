@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2024  Brendan Molloy <brendan@bbqsrc.net>,
+// Copyright (c) 2021-2025  Brendan Molloy <brendan@bbqsrc.net>,
 //                          Ilya Solovyiov <ilya.solovyiov@gmail.com>,
 //                          Kai Ren <tyranron@gmail.com>
 //
@@ -10,12 +10,9 @@
 
 //! Helper parser combinators.
 
-use std::ops::RangeFrom;
-
 use nom::{
     error::{ErrorKind, ParseError},
-    AsChar, Err, IResult, InputIter, InputLength, InputTake,
-    InputTakeAtPosition, Offset, Parser, Slice,
+    AsChar, Err, IResult, Input, Offset, Parser,
 };
 
 /// Applies the given `map` function to the `parser`'s [`IResult`] in case it
@@ -26,13 +23,13 @@ use nom::{
 /// [`Error`]: nom::Err::Error
 /// [`Failure`]: nom::Err::Failure
 /// [`verify()`]: nom::combinator::verify()
-pub(crate) fn map_err<I, O1, E: ParseError<I>, F, G>(
+pub(crate) fn map_err<I, F, G>(
     mut parser: F,
     mut map: G,
-) -> impl FnMut(I) -> IResult<I, O1, E>
+) -> impl FnMut(I) -> IResult<I, F::Output, F::Error>
 where
-    F: Parser<I, O1, E>,
-    G: FnMut(Err<E>) -> Err<E>,
+    F: Parser<I>,
+    G: FnMut(Err<F::Error>) -> Err<F::Error>,
 {
     move |input: I| parser.parse(input).map_err(&mut map)
 }
@@ -47,26 +44,19 @@ where
 ///    non-`escapable` `Input` or end of line.
 ///
 /// [`escaped()`]: nom::bytes::complete::escaped()
-pub(crate) fn escaped0<'a, Input, Error, F, G, O1, O2>(
+pub(crate) fn escaped0<'a, I, Error, F, G>(
     mut normal: F,
     control_char: char,
     mut escapable: G,
-) -> impl FnMut(Input) -> IResult<Input, Input, Error>
+) -> impl FnMut(I) -> IResult<I, I, Error>
 where
-    Input: Clone
-        + Offset
-        + InputLength
-        + InputTake
-        + InputTakeAtPosition
-        + Slice<RangeFrom<usize>>
-        + InputIter
-        + 'a,
-    <Input as InputIter>::Item: AsChar,
-    F: Parser<Input, O1, Error>,
-    G: Parser<Input, O2, Error>,
-    Error: ParseError<Input>,
+    I: Clone + Offset + Input + 'a,
+    <I as Input>::Item: AsChar,
+    F: Parser<I, Error = Error>,
+    G: Parser<I, Error = Error>,
+    Error: ParseError<I>,
 {
-    move |input: Input| {
+    move |input: I| {
         let mut i = input.clone();
         let mut consumed_nothing = false;
 
@@ -76,7 +66,7 @@ where
             match (normal.parse(i.clone()), consumed_nothing) {
                 (Ok((i2, _)), false) => {
                     if i2.input_len() == 0 {
-                        return Ok((input.slice(input.input_len()..), input));
+                        return Ok((input.take_from(input.input_len()), input));
                     }
                     if i2.input_len() == current_len {
                         consumed_nothing = true;
@@ -102,11 +92,11 @@ where
                                 ErrorKind::Escaped,
                             )));
                         }
-                        match escapable.parse(i.slice(next..)) {
+                        match escapable.parse(i.take_from(next)) {
                             Ok((i2, _)) => {
                                 if i2.input_len() == 0 {
                                     return Ok((
-                                        input.slice(input.input_len()..),
+                                        input.take_from(input.input_len()),
                                         input,
                                     ));
                                 }
@@ -133,7 +123,7 @@ where
             }
         }
 
-        Ok((input.slice(input.input_len()..), input))
+        Ok((input.take_from(input.input_len()), input))
     }
 }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2024  Brendan Molloy <brendan@bbqsrc.net>,
+// Copyright (c) 2021-2025  Brendan Molloy <brendan@bbqsrc.net>,
 //                          Ilya Solovyiov <ilya.solovyiov@gmail.com>,
 //                          Kai Ren <tyranron@gmail.com>
 //
@@ -23,7 +23,7 @@ use std::{iter, str, vec};
 
 use derive_more::{Debug, Display, Error as StdError, From};
 use either::Either;
-use nom::{AsChar, InputIter};
+use nom::{AsChar, Input};
 use regex::Regex;
 
 use crate::{
@@ -35,7 +35,6 @@ pub use self::parameters::{
     Provider as ParametersProvider, WithCustom as WithCustomParameters,
 };
 
-#[allow(clippy::multiple_inherent_impl)] // because of `into-regex` feature
 impl<'s> Expression<Spanned<'s>> {
     /// Parses the given `input` as an [`Expression`], and immediately expands
     /// it into the appropriate [`Regex`].
@@ -64,8 +63,8 @@ impl<'s> Expression<Spanned<'s>> {
     /// [`Error`]: enum@Error
     /// [0]: https://github.com/cucumber/cucumber-expressions#readme
     /// [1]: https://github.com/cucumber/cucumber-expressions#parameter-types
-    pub fn regex<Input: AsRef<str> + ?Sized>(
-        input: &'s Input,
+    pub fn regex<I: AsRef<str> + ?Sized>(
+        input: &'s I,
     ) -> Result<Regex, Error<Spanned<'s>>> {
         let re_str = Expression::parse(input)?
             .into_regex_char_iter()
@@ -103,15 +102,15 @@ impl<'s> Expression<Spanned<'s>> {
     ///
     /// [`Error`]: enum@Error
     /// [1]: https://github.com/cucumber/cucumber-expressions#parameter-types
-    pub fn regex_with_parameters<Input, Parameters>(
-        input: &'s Input,
+    pub fn regex_with_parameters<I, Parameters>(
+        input: &'s I,
         parameters: Parameters,
     ) -> Result<Regex, Error<Spanned<'s>>>
     where
-        Input: AsRef<str> + ?Sized,
+        I: AsRef<str> + ?Sized,
         Parameters: Clone + ParametersProvider<Spanned<'s>>,
-        Parameters::Value: InputIter,
-        <Parameters::Value as InputIter>::Item: AsChar,
+        Parameters::Value: Input,
+        <Parameters::Value as Input>::Item: AsChar,
     {
         let re_str = Expression::parse(input)?
             .with_parameters(parameters)
@@ -204,12 +203,12 @@ pub trait IntoRegexCharIter<Input: Display> {
     fn into_regex_char_iter(self) -> Self::Iter;
 }
 
-impl<Input> IntoRegexCharIter<Input> for Expression<Input>
+impl<I> IntoRegexCharIter<I> for Expression<I>
 where
-    Input: Clone + Display + InputIter,
-    <Input as InputIter>::Item: AsChar,
+    I: Clone + Display + Input,
+    <I as Input>::Item: AsChar,
 {
-    type Iter = ExpressionIter<Input>;
+    type Iter = ExpressionIter<I>;
 
     fn into_regex_char_iter(self) -> Self::Iter {
         let into_regex_char_iter: fn(_) -> _ =
@@ -224,27 +223,27 @@ where
 // TODO: Replace with TAIT, once stabilized:
 //       https://github.com/rust-lang/rust/issues/63063
 /// [`IntoRegexCharIter::Iter`] for an [`Expression`].
-type ExpressionIter<Input> = iter::Chain<
+type ExpressionIter<I> = iter::Chain<
     iter::Chain<
-        iter::Once<Result<char, ParameterError<Input>>>,
+        iter::Once<Result<char, ParameterError<I>>>,
         iter::FlatMap<
-            vec::IntoIter<SingleExpression<Input>>,
-            <SingleExpression<Input> as IntoRegexCharIter<Input>>::Iter,
+            vec::IntoIter<SingleExpression<I>>,
+            <SingleExpression<I> as IntoRegexCharIter<I>>::Iter,
             fn(
-                SingleExpression<Input>,
+                SingleExpression<I>,
             )
-                -> <SingleExpression<Input> as IntoRegexCharIter<Input>>::Iter,
+                -> <SingleExpression<I> as IntoRegexCharIter<I>>::Iter,
         >,
     >,
-    iter::Once<Result<char, ParameterError<Input>>>,
+    iter::Once<Result<char, ParameterError<I>>>,
 >;
 
-impl<Input> IntoRegexCharIter<Input> for SingleExpression<Input>
+impl<I> IntoRegexCharIter<I> for SingleExpression<I>
 where
-    Input: Clone + Display + InputIter,
-    <Input as InputIter>::Item: AsChar,
+    I: Clone + Display + Input,
+    <I as Input>::Item: AsChar,
 {
-    type Iter = SingleExpressionIter<Input>;
+    type Iter = SingleExpressionIter<I>;
 
     fn into_regex_char_iter(self) -> Self::Iter {
         use Either::{Left, Right};
@@ -266,35 +265,35 @@ where
 // TODO: Replace with TAIT, once stabilized:
 //       https://github.com/rust-lang/rust/issues/63063
 /// [`IntoRegexCharIter::Iter`] for a [`SingleExpression`].
-type SingleExpressionIter<Input> = Either<
-    <Alternation<Input> as IntoRegexCharIter<Input>>::Iter,
+type SingleExpressionIter<I> = Either<
+    <Alternation<I> as IntoRegexCharIter<I>>::Iter,
     Either<
-        <Optional<Input> as IntoRegexCharIter<Input>>::Iter,
+        <Optional<I> as IntoRegexCharIter<I>>::Iter,
         Either<
-            <Parameter<Input> as IntoRegexCharIter<Input>>::Iter,
+            <Parameter<I> as IntoRegexCharIter<I>>::Iter,
             iter::Map<
                 EscapeForRegex<
                     iter::Map<
-                        <Input as InputIter>::IterElem,
-                        fn(<Input as InputIter>::Item) -> char,
+                        <I as Input>::Iter,
+                        fn(<I as Input>::Item) -> char,
                     >,
                 >,
-                MapOkChar<Input>,
+                MapOkChar<I>,
             >,
         >,
     >,
 >;
 
-impl<Input> IntoRegexCharIter<Input> for Alternation<Input>
+impl<I> IntoRegexCharIter<I> for Alternation<I>
 where
-    Input: Display + InputIter,
-    <Input as InputIter>::Item: AsChar,
+    I: Display + Input,
+    <I as Input>::Item: AsChar,
 {
-    type Iter = AlternationIter<Input>;
+    type Iter = AlternationIter<I>;
 
     fn into_regex_char_iter(self) -> Self::Iter {
         let ok: fn(_) -> _ = Ok;
-        let single_alt: fn(SingleAlternation<Input>) -> _ = |alt| {
+        let single_alt: fn(SingleAlternation<I>) -> _ = |alt| {
             let into_regex_char_iter: fn(_) -> _ =
                 IntoRegexCharIter::into_regex_char_iter;
 
@@ -330,7 +329,7 @@ type AlternationIter<I> = iter::Chain<
 
 // TODO: Replace with TAIT, once stabilized:
 //       https://github.com/rust-lang/rust/issues/63063
-/// Inner type of an [`AlternationIter`].
+/// Inner type of [`AlternationIter`].
 type AlternationIterInner<I> = iter::Chain<
     iter::FlatMap<
         vec::IntoIter<Alternative<I>>,
@@ -340,17 +339,17 @@ type AlternationIterInner<I> = iter::Chain<
     iter::Once<Result<char, ParameterError<I>>>,
 >;
 
-impl<Input> IntoRegexCharIter<Input> for Alternative<Input>
+impl<I> IntoRegexCharIter<I> for Alternative<I>
 where
-    Input: Display + InputIter,
-    <Input as InputIter>::Item: AsChar,
+    I: Display + Input,
+    <I as Input>::Item: AsChar,
 {
-    type Iter = AlternativeIter<Input>;
+    type Iter = AlternativeIter<I>;
 
     fn into_regex_char_iter(self) -> Self::Iter {
         use Either::{Left, Right};
 
-        let as_char: fn(<Input as InputIter>::Item) -> char = AsChar::as_char;
+        let as_char: fn(<I as Input>::Item) -> char = AsChar::as_char;
 
         match self {
             Self::Optional(opt) => Left(opt.into_regex_char_iter()),
@@ -364,28 +363,25 @@ where
 // TODO: Replace with TAIT, once stabilized:
 //       https://github.com/rust-lang/rust/issues/63063
 /// [`IntoRegexCharIter::Iter`] for an [`Alternative`].
-type AlternativeIter<Input> = Either<
-    <Optional<Input> as IntoRegexCharIter<Input>>::Iter,
+type AlternativeIter<I> = Either<
+    <Optional<I> as IntoRegexCharIter<I>>::Iter,
     iter::Map<
         EscapeForRegex<
-            iter::Map<
-                <Input as InputIter>::IterElem,
-                fn(<Input as InputIter>::Item) -> char,
-            >,
+            iter::Map<<I as Input>::Iter, fn(<I as Input>::Item) -> char>,
         >,
-        MapOkChar<Input>,
+        MapOkChar<I>,
     >,
 >;
 
-impl<Input> IntoRegexCharIter<Input> for Optional<Input>
+impl<I> IntoRegexCharIter<I> for Optional<I>
 where
-    Input: Display + InputIter,
-    <Input as InputIter>::Item: AsChar,
+    I: Display + Input,
+    <I as Input>::Item: AsChar,
 {
-    type Iter = OptionalIter<Input>;
+    type Iter = OptionalIter<I>;
 
     fn into_regex_char_iter(self) -> Self::Iter {
-        let as_char: fn(<Input as InputIter>::Item) -> char = AsChar::as_char;
+        let as_char: fn(<I as Input>::Item) -> char = AsChar::as_char;
 
         "(?:"
             .chars()
@@ -398,36 +394,33 @@ where
 // TODO: Replace with TAIT, once stabilized:
 //       https://github.com/rust-lang/rust/issues/63063
 /// [`IntoRegexCharIter::Iter`] for an [`Optional`].
-type OptionalIter<Input> = iter::Map<
+type OptionalIter<I> = iter::Map<
     iter::Chain<
         iter::Chain<
             str::Chars<'static>,
             EscapeForRegex<
-                iter::Map<
-                    <Input as InputIter>::IterElem,
-                    fn(<Input as InputIter>::Item) -> char,
-                >,
+                iter::Map<<I as Input>::Iter, fn(<I as Input>::Item) -> char>,
             >,
         >,
         str::Chars<'static>,
     >,
-    MapOkChar<Input>,
+    MapOkChar<I>,
 >;
 
 /// Function pointer describing [`Ok`].
-type MapOkChar<Input> = fn(char) -> Result<char, ParameterError<Input>>;
+type MapOkChar<I> = fn(char) -> Result<char, ParameterError<I>>;
 
-impl<Input> IntoRegexCharIter<Input> for Parameter<Input>
+impl<I> IntoRegexCharIter<I> for Parameter<I>
 where
-    Input: Clone + Display + InputIter,
-    <Input as InputIter>::Item: AsChar,
+    I: Clone + Display + Input,
+    <I as Input>::Item: AsChar,
 {
-    type Iter = ParameterIter<Input>;
+    type Iter = ParameterIter<I>;
 
     fn into_regex_char_iter(self) -> Self::Iter {
         use Either::{Left, Right};
 
-        let eq = |i: &Input, str: &str| {
+        let eq = |i: &I, str: &str| {
             i.iter_elements().map(AsChar::as_char).eq(str.chars())
         };
 
@@ -473,15 +466,15 @@ where
 // TODO: Replace with TAIT, once stabilized:
 //       https://github.com/rust-lang/rust/issues/63063
 /// [`IntoRegexCharIter::Iter`] for a [`Parameter`].
-type ParameterIter<Input> = Either<
+type ParameterIter<I> = Either<
     Either<
         iter::Map<
             str::Chars<'static>,
-            fn(char) -> Result<char, ParameterError<Input>>,
+            fn(char) -> Result<char, ParameterError<I>>,
         >,
-        iter::Map<OwnedChars, fn(char) -> Result<char, ParameterError<Input>>>,
+        iter::Map<OwnedChars, fn(char) -> Result<char, ParameterError<I>>>,
     >,
-    iter::Once<Result<char, ParameterError<Input>>>,
+    iter::Once<Result<char, ParameterError<I>>>,
 >;
 
 /// [`Iterator`] for skipping a last [`Item`].

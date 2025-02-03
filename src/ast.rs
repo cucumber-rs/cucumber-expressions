@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2024  Brendan Molloy <brendan@bbqsrc.net>,
+// Copyright (c) 2021-2025  Brendan Molloy <brendan@bbqsrc.net>,
 //                          Ilya Solovyiov <ilya.solovyiov@gmail.com>,
 //                          Kai Ren <tyranron@gmail.com>
 //
@@ -17,7 +17,7 @@
 //! [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 
 use derive_more::{AsRef, Deref, DerefMut};
-use nom::{error::ErrorKind, Err, InputLength};
+use nom::{error::ErrorKind, Err, Input};
 use nom_locate::LocatedSpan;
 
 use crate::parse;
@@ -112,7 +112,7 @@ pub type SingleAlternation<Input> = Vec<Alternative<Input>>;
 #[derive(AsRef, Clone, Debug, Deref, DerefMut, Eq, PartialEq)]
 pub struct Alternation<Input>(pub Vec<SingleAlternation<Input>>);
 
-impl<Input: InputLength> Alternation<Input> {
+impl<I: Input> Alternation<I> {
     /// Returns length of this [`Alternation`]'s span in the `Input`.
     pub(crate) fn span_len(&self) -> usize {
         self.0

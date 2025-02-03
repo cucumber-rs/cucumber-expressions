@@ -2,7 +2,7 @@
 name = "cucumber-expressions"
 version = "0.3.0"
 edition = "2021"
-rust-version = "1.75"
+rust-version = "1.81"
 description = "Cucumber Expressions AST and parser."
 license = "MIT OR Apache-2.0"
 authors = [
@@ -27,8 +27,8 @@ into-regex = ["dep:either", "dep:regex", "dep:regex-syntax"]
 
 [dependencies]
 derive_more = { version = "1.0", features = ["as_ref", "debug", "deref", "deref_mut", "display", "error", "from", "into"] }
-nom = "7.0"
-nom_locate = "4.0"
+nom = "8.0"
+nom_locate = "5.0"
 
 # "into-regex" feature dependencies
 either = { version = "1.6", optional = true }

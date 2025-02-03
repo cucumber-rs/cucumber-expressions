@@ -21,7 +21,7 @@ pub mod parameters;
 
 use std::{iter, str, vec};
 
-use derive_more::{Debug, Display, Error as StdError, From};
+use derive_more::with_trait::{Debug, Display, Error as StdError, From};
 use either::Either;
 use nom::{AsChar, Input};
 use regex::Regex;
@@ -140,10 +140,7 @@ impl<'s> Expression<Spanned<'s>> {
 ///
 /// [0]: https://github.com/cucumber/cucumber-expressions#readme
 #[derive(Clone, Debug, Display, From, StdError)]
-pub enum Error<Input>
-where
-    Input: Display,
-{
+pub enum Error<Input> {
     /// Parsing error.
     #[display("Parsing failed: {_0}")]
     Parsing(parse::Error<Input>),
@@ -159,10 +156,7 @@ where
 
 /// Possible [`Parameter`] errors being used in an [`Expression`].
 #[derive(Clone, Debug, Display, StdError)]
-pub enum ParameterError<Input>
-where
-    Input: Display,
-{
+pub enum ParameterError<Input> {
     /// [`Parameter`] not found.
     #[display("Parameter `{_0}` not found")]
     NotFound(Input),
@@ -192,7 +186,7 @@ where
 /// [0]: https://github.com/cucumber/cucumber-expressions#readme
 /// [1]: https://git.io/J159T
 /// [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
-pub trait IntoRegexCharIter<Input: Display> {
+pub trait IntoRegexCharIter<Input> {
     /// Type of [`Iterator`] performing the expansion.
     type Iter: Iterator<Item = Result<char, ParameterError<Input>>>;
 

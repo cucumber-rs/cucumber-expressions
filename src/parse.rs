@@ -16,7 +16,7 @@
 //! [1]: https://github.com/cucumber/cucumber-expressions#readme
 //! [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 
-use derive_more::{Display, Error as StdError};
+use derive_more::with_trait::{Display, Error as StdError};
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while, take_while1},
@@ -567,10 +567,7 @@ where
 
 /// Possible parsing errors.
 #[derive(Clone, Copy, Debug, Display, Eq, PartialEq, StdError)]
-pub enum Error<Input>
-where
-    Input: Display,
-{
+pub enum Error<Input> {
     /// Nested [`Parameter`]s.
     #[display(
         "{_0}\n\
@@ -705,7 +702,7 @@ where
     Needed(#[error(not(source))] Needed),
 }
 
-impl<Input: Display> Error<Input> {
+impl<Input> Error<Input> {
     /// Converts this [`Error`] into a [`Failure`].
     ///
     /// [`Error`]: enum@Error
@@ -715,7 +712,7 @@ impl<Input: Display> Error<Input> {
     }
 }
 
-impl<Input: Display> ParseError<Input> for Error<Input> {
+impl<Input> ParseError<Input> for Error<Input> {
     fn from_error_kind(input: Input, kind: ErrorKind) -> Self {
         Self::Other(input, kind)
     }

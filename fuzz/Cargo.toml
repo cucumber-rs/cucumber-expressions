@@ -1,8 +1,8 @@
 [package]
 name = "cucumber-expressions-fuzz"
 version = "0.0.0"
-edition = "2021"
-rust-version = "1.81"
+edition = "2024"
+rust-version = "1.85"
 description = "Fuzz testing for `cucumber-expressions` crate."
 license = "MIT OR Apache-2.0"
 authors = [

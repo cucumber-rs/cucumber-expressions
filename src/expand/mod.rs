@@ -26,13 +26,12 @@ use either::Either;
 use nom::{AsChar, Input};
 use regex::Regex;
 
-use crate::{
-    parse, Alternation, Alternative, Expression, Optional, Parameter,
-    SingleAlternation, SingleExpression, Spanned,
-};
-
 pub use self::parameters::{
     Provider as ParametersProvider, WithCustom as WithCustomParameters,
+};
+use crate::{
+    Alternation, Alternative, Expression, Optional, Parameter,
+    SingleAlternation, SingleExpression, Spanned, parse,
 };
 
 impl<'s> Expression<Spanned<'s>> {
@@ -93,11 +92,9 @@ impl<'s> Expression<Spanned<'s>> {
     ///     &parameters,
     /// )
     /// .unwrap();
+    /// let re = re.as_str();
     ///
-    /// assert_eq!(
-    ///     re.as_str(),
-    ///     "^([^\\s]+) has ([Rr]ed|[Gg]reen|[Bb]lue) eyes$",
-    /// );
+    /// assert_eq!(re, "^([^\\s]+) has ([Rr]ed|[Gg]reen|[Bb]lue) eyes$");
     /// ```
     ///
     /// [`Error`]: enum@Error
@@ -128,10 +125,7 @@ impl<'s> Expression<Spanned<'s>> {
         self,
         parameters: P,
     ) -> WithCustomParameters<Self, P> {
-        WithCustomParameters {
-            element: self,
-            parameters,
-        }
+        WithCustomParameters { element: self, parameters }
     }
 }
 
@@ -488,18 +482,14 @@ where
     Iter::Item: Clone,
 {
     fn clone(&self) -> Self {
-        Self {
-            iter: self.iter.clone(),
-        }
+        Self { iter: self.iter.clone() }
     }
 }
 
 impl<Iter: Iterator> SkipLast<Iter> {
     /// Creates a new [`SkipLast`] [`Iterator`].
     pub fn new(iter: Iter) -> Self {
-        Self {
-            iter: iter.peekable(),
-        }
+        Self { iter: iter.peekable() }
     }
 }
 
@@ -572,10 +562,7 @@ pub struct EscapeForRegex<Iter: Iterator> {
 impl<Iter: Iterator> EscapeForRegex<Iter> {
     /// Creates a new [`EscapeForRegex`] [`Iterator`].
     pub fn new(iter: Iter) -> Self {
-        Self {
-            iter: iter.peekable(),
-            was_escaped: None,
-        }
+        Self { iter: iter.peekable(), was_escaped: None }
     }
 }
 

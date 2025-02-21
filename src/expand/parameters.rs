@@ -17,12 +17,11 @@ use std::{collections::HashMap, fmt::Display, iter, str, vec};
 use either::Either;
 use nom::{AsChar, Input};
 
-use crate::{expand::OwnedChars, Parameter, SingleExpression};
-
 use super::{
     Expression, IntoRegexCharIter, ParameterError, ParameterIter,
     SingleExpressionIter,
 };
+use crate::{Parameter, SingleExpression, expand::OwnedChars};
 
 /// Parser of a [Cucumber Expressions][0] [AST] `Element` with [custom][1]
 /// `Parameters` in mind.
@@ -106,10 +105,8 @@ where
     type Iter = ExpressionWithParsIter<I, Pars>;
 
     fn into_regex_char_iter(self) -> Self::Iter {
-        let add_pars: fn(_) -> _ = |(item, parameters)| WithCustom {
-            element: item,
-            parameters,
-        };
+        let add_pars: fn(_) -> _ =
+            |(item, parameters)| WithCustom { element: item, parameters };
         let into_regex_char_iter: fn(_) -> _ =
             IntoRegexCharIter::into_regex_char_iter;
         iter::once(Ok('^'))
@@ -161,11 +158,8 @@ where
 
         if let SingleExpression::Parameter(item) = self.element {
             Left(
-                WithCustom {
-                    element: item,
-                    parameters: self.parameters,
-                }
-                .into_regex_char_iter(),
+                WithCustom { element: item, parameters: self.parameters }
+                    .into_regex_char_iter(),
             )
         } else {
             Right(self.element.into_regex_char_iter())
@@ -383,9 +377,8 @@ mod regex_hir {
 
 #[cfg(test)]
 mod spec {
-    use crate::expand::Error;
-
     use super::{Expression, HashMap, ParameterError};
+    use crate::expand::Error;
 
     #[test]
     fn custom_parameter() {

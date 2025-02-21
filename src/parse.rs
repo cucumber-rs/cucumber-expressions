@@ -18,13 +18,13 @@
 
 use derive_more::with_trait::{Display, Error as StdError};
 use nom::{
+    AsChar, Compare, Err, FindToken, IResult, Input, Needed, Offset, Parser,
     branch::alt,
     bytes::complete::{tag, take_while, take_while1},
     character::complete::one_of,
     combinator::{map, peek, verify},
     error::{ErrorKind, ParseError},
     multi::{many0, many1, separated_list1},
-    AsChar, Compare, Err, FindToken, IResult, Input, Needed, Offset, Parser,
 };
 
 use crate::{
@@ -58,11 +58,11 @@ pub const RESERVED_CHARS: &str = r"{}()\/ ";
 /// [`EscapedEndOfLine`]: Error::EscapedEndOfLine
 /// [`EscapedNonReservedCharacter`]: Error::EscapedNonReservedCharacter
 /// [`Failure`]: Err::Failure
-fn escaped_reserved_chars0<'a, I, F>(
+fn escaped_reserved_chars0<I, F>(
     normal: F,
 ) -> impl FnMut(I) -> IResult<I, I, Error<I>>
 where
-    I: Clone + Display + Offset + Input + 'a,
+    I: Clone + Display + Offset + Input,
     <I as Input>::Item: AsChar + Copy,
     F: Parser<I, Error = Error<I>>,
     Error<I>: ParseError<I>,
@@ -135,12 +135,12 @@ where
 /// [`UnescapedReservedCharacter`]: Error::UnescapedReservedCharacter
 /// [`UnfinishedParameter`]: Error::UnfinishedParameter
 /// [0]: crate#grammar
-pub fn parameter<'a, I>(
+pub fn parameter<I>(
     input: I,
     indexer: &mut usize,
 ) -> IResult<I, Parameter<I>, Error<I>>
 where
-    I: Clone + Display + Offset + Input + for<'s> Compare<&'s str> + 'a,
+    I: Clone + Display + Offset + Input + for<'s> Compare<&'s str>,
     <I as Input>::Item: AsChar + Copy,
     Error<I>: ParseError<I>,
     for<'s> &'s str: FindToken<<I as Input>::Item>,
@@ -196,13 +196,7 @@ where
     })(input.clone())?;
 
     *indexer += 1;
-    Ok((
-        input,
-        Parameter {
-            input: par_name,
-            id: *indexer - 1,
-        },
-    ))
+    Ok((input, Parameter { input: par_name, id: *indexer - 1 }))
 }
 
 /// Parses an `optional` as defined in the [grammar spec][0].
@@ -253,9 +247,9 @@ where
 /// [`UnescapedReservedCharacter`]: Error::UnescapedReservedCharacter
 /// [`UnfinishedOptional`]: Error::UnfinishedOptional
 /// [0]: crate#grammar
-pub fn optional<'a, I>(input: I) -> IResult<I, Optional<I>, Error<I>>
+pub fn optional<I>(input: I) -> IResult<I, Optional<I>, Error<I>>
 where
-    I: Clone + Display + Offset + Input + for<'s> Compare<&'s str> + 'a,
+    I: Clone + Display + Offset + Input + for<'s> Compare<&'s str>,
     <I as Input>::Item: AsChar + Copy,
     Error<I>: ParseError<I>,
     for<'s> &'s str: FindToken<<I as Input>::Item>,
@@ -352,9 +346,9 @@ where
 ///
 /// [`Failure`]: Err::Failure
 /// [0]: crate#grammar
-pub fn alternative<'a, I>(input: I) -> IResult<I, Alternative<I>, Error<I>>
+pub fn alternative<I>(input: I) -> IResult<I, Alternative<I>, Error<I>>
 where
-    I: Clone + Display + Offset + Input + for<'s> Compare<&'s str> + 'a,
+    I: Clone + Display + Offset + Input + for<'s> Compare<&'s str>,
     <I as Input>::Item: AsChar + Copy,
     Error<I>: ParseError<I>,
     for<'s> &'s str: FindToken<<I as Input>::Item>,
@@ -490,12 +484,12 @@ where
 ///
 /// [`Failure`]: Err::Failure
 /// [0]: crate#grammar
-pub fn single_expression<'a, I>(
+pub fn single_expression<I>(
     input: I,
     indexer: &mut usize,
 ) -> IResult<I, SingleExpression<I>, Error<I>>
 where
-    I: Clone + Display + Offset + Input + for<'s> Compare<&'s str> + 'a,
+    I: Clone + Display + Offset + Input + for<'s> Compare<&'s str>,
     <I as Input>::Item: AsChar + Copy,
     Error<I>: ParseError<I>,
     for<'s> &'s str: FindToken<<I as Input>::Item>,
@@ -550,19 +544,16 @@ where
 ///
 /// [`Failure`]: Err::Failure
 /// [0]: crate#grammar
-pub fn expression<'a, I>(input: I) -> IResult<I, Expression<I>, Error<I>>
+pub fn expression<I>(input: I) -> IResult<I, Expression<I>, Error<I>>
 where
-    I: Clone + Display + Offset + Input + for<'s> Compare<&'s str> + 'a,
+    I: Clone + Display + Offset + Input + for<'s> Compare<&'s str>,
     <I as Input>::Item: AsChar + Copy,
     Error<I>: ParseError<I>,
     for<'s> &'s str: FindToken<<I as Input>::Item>,
 {
     let mut indexer = 0;
-    map(
-        many0(move |i| single_expression(i, &mut indexer)),
-        Expression,
-    )
-    .parse(input)
+    map(many0(move |i| single_expression(i, &mut indexer)), Expression)
+        .parse(input)
 }
 
 /// Possible parsing errors.
@@ -733,13 +724,13 @@ impl<Input> ParseError<Input> for Error<Input> {
 mod spec {
     use std::fmt;
 
-    use nom::{error::ErrorKind, Err, IResult};
+    use nom::{Err, IResult, error::ErrorKind};
 
     use crate::{
-        parse::{
-            alternation, alternative, expression, optional, parameter, Error,
-        },
         Alternative, Spanned,
+        parse::{
+            Error, alternation, alternative, expression, optional, parameter,
+        },
     };
 
     /// Asserts two given text representations of [AST] to be equal.
@@ -776,7 +767,7 @@ mod spec {
     }
 
     mod parameter {
-        use super::{parameter, unwrap_parser, Err, Error, ErrorKind, Spanned};
+        use super::{Err, Error, ErrorKind, Spanned, parameter, unwrap_parser};
 
         #[test]
         fn empty() {
@@ -922,7 +913,7 @@ mod spec {
     }
 
     mod optional {
-        use super::{optional, unwrap_parser, Err, Error, ErrorKind, Spanned};
+        use super::{Err, Error, ErrorKind, Spanned, optional, unwrap_parser};
 
         #[test]
         fn basic() {
@@ -1074,8 +1065,8 @@ mod spec {
 
     mod alternative {
         use super::{
-            alternative, unwrap_parser, Alternative, Err, Error, ErrorKind,
-            Spanned,
+            Alternative, Err, Error, ErrorKind, Spanned, alternative,
+            unwrap_parser,
         };
 
         #[test]
@@ -1168,8 +1159,8 @@ mod spec {
 
     mod alternation {
         use super::{
-            alternation, assert_ast_eq, unwrap_parser, Err, Error, ErrorKind,
-            Spanned,
+            Err, Error, ErrorKind, Spanned, alternation, assert_ast_eq,
+            unwrap_parser,
         };
 
         #[test]
@@ -1435,7 +1426,7 @@ mod spec {
     // Naming of test cases is preserved.
     mod expression {
         use super::{
-            assert_ast_eq, expression, unwrap_parser, Err, Error, Spanned,
+            Err, Error, Spanned, assert_ast_eq, expression, unwrap_parser,
         };
 
         #[test]

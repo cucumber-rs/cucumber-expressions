@@ -11,8 +11,8 @@
 //! Helper parser combinators.
 
 use nom::{
-    error::{ErrorKind, ParseError},
     AsChar, Err, IResult, Input, Offset, Parser,
+    error::{ErrorKind, ParseError},
 };
 
 /// Applies the given `map` function to the `parser`'s [`IResult`] in case it
@@ -44,13 +44,13 @@ where
 ///    non-`escapable` `Input` or end of line.
 ///
 /// [`escaped()`]: nom::bytes::complete::escaped()
-pub(crate) fn escaped0<'a, I, Error, F, G>(
+pub(crate) fn escaped0<I, Error, F, G>(
     mut normal: F,
     control_char: char,
     mut escapable: G,
 ) -> impl FnMut(I) -> IResult<I, I, Error>
 where
-    I: Clone + Offset + Input + 'a,
+    I: Clone + Offset + Input,
     <I as Input>::Item: AsChar,
     F: Parser<I, Error = Error>,
     G: Parser<I, Error = Error>,
@@ -130,10 +130,10 @@ where
 #[cfg(test)]
 mod escaped0_spec {
     use nom::{
+        Err, IResult,
         bytes::complete::escaped,
         character::complete::{digit0, digit1, one_of},
         error::{Error, ErrorKind},
-        Err, IResult,
     };
 
     use super::escaped0;

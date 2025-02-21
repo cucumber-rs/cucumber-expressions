@@ -17,7 +17,7 @@
 //! [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 
 use derive_more::with_trait::{AsRef, Deref, DerefMut};
-use nom::{error::ErrorKind, Err, Input};
+use nom::{Err, Input, error::ErrorKind};
 use nom_locate::LocatedSpan;
 
 use crate::parse;
@@ -131,9 +131,7 @@ impl<I: Input> Alternation<I> {
     /// [`Optional`]s.
     pub(crate) fn contains_only_optional(&self) -> bool {
         (**self).iter().any(|single_alt| {
-            single_alt
-                .iter()
-                .all(|alt| matches!(alt, Alternative::Optional(_)))
+            single_alt.iter().all(|alt| matches!(alt, Alternative::Optional(_)))
         })
     }
 }

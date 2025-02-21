@@ -6,6 +6,19 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 
 
 
+## main
+
+[Diff](https://github.com/cucumber-rs/cucumber-expressions/compare/v0.4.0...main)
+
+### BC Breaks
+
+- Bumped up [MSRV] to 1.85 because of migration to 2024 edition. ([todo])
+
+[todo]: https://github.com/cucumber-rs/cucumber-expressions/commit/todo
+
+
+
+
 ## [0.4.0] · 2025-02-03
 [0.4.0]: https://github.com/cucumber-rs/cucumber-expressions/tree/v0.4.0
 

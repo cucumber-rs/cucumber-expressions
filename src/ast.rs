@@ -37,16 +37,14 @@ impl<'s> TryFrom<&'s str> for Expression<Spanned<'s>> {
     type Error = parse::Error<Spanned<'s>>;
 
     fn try_from(value: &'s str) -> Result<Self, Self::Error> {
-        parse::expression(Spanned::new(value))
-            .map_err(|e| match e {
+        let (rest, parsed) =
+            parse::expression(Spanned::new(value)).map_err(|e| match e {
                 Err::Error(e) | Err::Failure(e) => e,
                 Err::Incomplete(n) => parse::Error::Needed(n),
-            })
-            .and_then(|(rest, parsed)| {
-                rest.is_empty()
-                    .then_some(parsed)
-                    .ok_or(parse::Error::Other(rest, ErrorKind::Verify))
-            })
+            })?;
+        rest.is_empty()
+            .then_some(parsed)
+            .ok_or(parse::Error::Other(rest, ErrorKind::Verify))
     }
 }
 

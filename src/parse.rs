@@ -437,14 +437,14 @@ where
         Err(e) => Err(e),
     }?;
 
-    alt.contains_only_optional()
-        .then(|| {
-            Err(Error::OnlyOptionalInAlternation(
-                original_input.take(alt.span_len()),
-            )
-            .failure())
-        })
-        .unwrap_or(Ok((rest, alt)))
+    if alt.contains_only_optional() {
+        Err(Error::OnlyOptionalInAlternation(
+            original_input.take(alt.span_len()),
+        )
+        .failure())
+    } else {
+        Ok((rest, alt))
+    }
 }
 
 /// Parses a `single-expression` as defined in the [grammar spec][0].

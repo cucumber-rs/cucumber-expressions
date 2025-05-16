@@ -2,6 +2,8 @@
 # See full lints list at:
 # https://rust-lang.github.io/rust-clippy/master/index.html
 
+allow-expect-in-tests = true
+
 standard-macro-braces = [
     { name = "assert", brace = "(" },
     { name = "assert_eq", brace = "(" },

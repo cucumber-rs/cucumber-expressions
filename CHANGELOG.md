@@ -12,9 +12,9 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 
 ### BC Breaks
 
-- Bumped up [MSRV] to 1.85 because of migration to 2024 edition. ([todo])
+- Bumped up [MSRV] to 1.85 because of migration to 2024 edition. ([cd6a7180])
 
-[todo]: https://github.com/cucumber-rs/cucumber-expressions/commit/todo
+[cd6a7180]: https://github.com/cucumber-rs/cucumber-expressions/commit/cd6a71801b6f50d088c47ad30ea87bddda977f94
 
 
 

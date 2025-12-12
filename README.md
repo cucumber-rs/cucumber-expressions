@@ -7,7 +7,7 @@
 [![CI](https://github.com/cucumber-rs/cucumber-expressions/actions/workflows/ci.yml/badge.svg?branch=main "CI")](https://github.com/cucumber-rs/cucumber-expressions/actions?query=workflow%3ACI+branch%3Amain)
 [![Rust docs](https://docs.rs/cucumber-expressions/badge.svg "Rust docs")](https://docs.rs/cucumber-expressions)
 
-- [Changelog](https://github.com/cucumber-rs/cucumber-expressions/blob/v0.4.0/CHANGELOG.md)
+- [Changelog](https://github.com/cucumber-rs/cucumber-expressions/blob/v0.5.0/CHANGELOG.md)
 
 Rust implementation of [Cucumber Expressions].
 
@@ -38,7 +38,7 @@ assert_eq!(&caps[1], "42");
 
 ## Grammar
 
-This implementation follows a context-free grammar, [which isn't yet merged][1]. Original grammar is impossible to follow while creating a performant parser, as it consists errors and describes not an exact [Cucumber Expressions] language, but rather some superset language, while being also context-sensitive. In case you've found some inconsistencies between this implementation and the ones in other languages, please file an issue! 
+This implementation follows a context-free grammar, [which isn't yet merged][1]. Original grammar is impossible to follow while creating a performant parser, as it consists errors and describes not an exact [Cucumber Expressions] language, but rather some superset language, while being also context-sensitive. In case you've found some inconsistencies between this implementation and the ones in other languages, please file an issue!
 
 [EBNF] spec of the current context-free grammar implemented by this crate:
 ```ebnf
@@ -84,8 +84,8 @@ Follows original [production rules][2].
 
 This project is licensed under either of
 
-* Apache License, Version 2.0 ([LICENSE-APACHE](https://github.com/cucumber-rs/cucumber-expressions/blob/v0.4.0/LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
-* MIT license ([LICENSE-MIT](https://github.com/cucumber-rs/cucumber-expressions/blob/v0.4.0/LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
+* Apache License, Version 2.0 ([LICENSE-APACHE](https://github.com/cucumber-rs/cucumber-expressions/blob/v0.5.0/LICENSE-APACHE) or <http://www.apache.org/licenses/LICENSE-2.0>)
+* MIT license ([LICENSE-MIT](https://github.com/cucumber-rs/cucumber-expressions/blob/v0.5.0/LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
 
 at your option.
 

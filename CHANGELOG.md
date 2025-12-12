@@ -6,9 +6,10 @@ All user visible changes to `cucumber-expressions` crate will be documented in t
 
 
 
-## main
+## [0.5.0] · 2025-12-12
+[0.5.0]: https://github.com/cucumber-rs/cucumber-expressions/tree/v0.5.0
 
-[Diff](https://github.com/cucumber-rs/cucumber-expressions/compare/v0.4.0...main)
+[Diff](https://github.com/cucumber-rs/cucumber-expressions/compare/v0.4.0...v0.5.0)
 
 ### BC Breaks
 

@@ -34,6 +34,7 @@ use crate::{
     SingleAlternation, SingleExpression, Spanned, parse,
 };
 
+#[expect(clippy::multiple_inherent_impl, reason = "intended to be here")]
 impl<'s> Expression<Spanned<'s>> {
     /// Parses the given `input` as an [`Expression`], and immediately expands
     /// it into the appropriate [`Regex`].

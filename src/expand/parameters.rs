@@ -203,9 +203,10 @@ where
                             .iter_elements()
                             .map(AsChar::as_char)
                             .collect::<String>();
-                        let hir = regex_syntax::Parser::new()
-                            .parse(&re)
-                            .map_err(|err| (self.element.input, re, err))?;
+                        let hir =
+                            regex_syntax::Parser::new().parse(&re).map_err(
+                                |err| (self.element.input, re, Box::new(err)),
+                            )?;
                         Ok(regex_hir::has_capture_groups(&hir).then_some(hir))
                     })
                     .transpose();
@@ -216,7 +217,7 @@ where
                             ParameterError::RenameRegexGroup {
                                 parameter,
                                 re,
-                                err: Box::new(err),
+                                err,
                             },
                         )));
                     }
